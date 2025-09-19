@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#FA8072', '#7D3C98', '#27AE60', '#F1C40F'];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: any }) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg">
         <p className="label font-bold text-gray-800">{`${label}`}</p>
-        <p className="intro text-blue-600">{`${payload[0].name} : ${payload[0].value.toLocaleString()}`}</p>
+        <p className="intro text-blue-600">{`${payload[0].name} : ${payload[0].value?.toLocaleString()}`}</p>
       </div>
     );
   }
@@ -39,16 +39,50 @@ interface BookingData {
   guidance_date: string | Date | null;
 }
 
-export default function DashboardClient({ 
-  initialSchools,
-  initialGuidances,
-  initialBookings
-}: { 
-  initialSchools: SchoolData[],
-  initialGuidances: GuidanceData[],
-  initialBookings: BookingData[]
-}) {
+export default function DashboardClient() {
   const [timeRange, setTimeRange] = useState('all');
+  const [schools, setSchools] = useState<SchoolData[]>([]);
+  const [guidances, setGuidances] = useState<GuidanceData[]>([]);
+  const [bookings, setBookings] = useState<BookingData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [schoolsRes, guidancesRes, bookingsRes] = await Promise.all([
+          fetch('/api/school'),
+          fetch('/api/auth/guidance'),
+          fetch('/api/auth/book'),
+        ]);
+
+        if (!schoolsRes.ok || !guidancesRes.ok || !bookingsRes.ok) {
+          throw new Error('ไม่สามารถโหลดข้อมูลแดชบอร์ดได้');
+        }
+
+        const schoolsData = await schoolsRes.json();
+        const guidancesData = await guidancesRes.json();
+        const bookingsData = await bookingsRes.json();
+
+        const extractedSchools: SchoolData[] = Array.isArray(schoolsData) ? schoolsData : schoolsData.data || [];
+        const extractedGuidances: GuidanceData[] = guidancesData.guidances || (Array.isArray(guidancesData) ? guidancesData : guidancesData.data || []);
+        const extractedBookings: BookingData[] = Array.isArray(bookingsData) ? bookingsData : bookingsData.data || [];
+
+        setSchools(extractedSchools);
+        setGuidances(extractedGuidances);
+        setBookings(extractedBookings);
+
+      } catch (err: any) {
+        setError(err.message || 'เกิดข้อผิดพลาดที่ไม่รู้จัก');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const {
     sections,
@@ -67,19 +101,19 @@ export default function DashboardClient({
     }
 
     const filteredGuidances = filterActive 
-      ? initialGuidances.filter(g => g.guidance_date && new Date(g.guidance_date) >= cutoffDate)
-      : initialGuidances;
+      ? guidances.filter(g => g.guidance_date && new Date(g.guidance_date) >= cutoffDate)
+      : guidances;
     
     const filteredBookings = filterActive
-      ? initialBookings.filter(b => b.guidance_date && new Date(b.guidance_date) >= cutoffDate)
-      : initialBookings;
+      ? bookings.filter(b => b.guidance_date && new Date(b.guidance_date) >= cutoffDate)
+      : bookings;
 
     // --- Re-calculate aggregations ---
-    const pendingSchools = initialSchools.filter(s => s.is_approved === 0);
-    const approvedSchools = initialSchools.filter(s => s.is_approved === 1);
+    const pendingSchools = schools.filter(s => s.is_approved === 0);
+    const approvedSchools = schools.filter(s => s.is_approved === 1);
 
     const sections = [
-      { id: 'schools', title: '🏫 โรงเรียนทั้งหมด', count: initialSchools.length, color: 'from-blue-400 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
+      { id: 'schools', title: '🏫 โรงเรียนทั้งหมด', count: schools.length, color: 'from-blue-400 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
       { id: 'guidances', title: '📅 กิจกรรม', count: filteredGuidances.length, color: 'from-indigo-400 to-indigo-600', bgColor: 'bg-indigo-50', textColor: 'text-indigo-700' },
       { id: 'bookings', title: '📋 การจอง', count: filteredBookings.length, color: 'from-emerald-400 to-green-600', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700' },
     ];
@@ -116,7 +150,32 @@ export default function DashboardClient({
     const guidanceMonthlyData = monthOrder.map(month => ({ name: month, 'จำนวนกิจกรรม': guidanceByMonth[month] || 0 }));
 
     return { sections, guidanceCategoryData, schoolsByProvinceData, guidanceMonthlyData };
-  }, [timeRange, initialSchools, initialGuidances, initialBookings]);
+  }, [timeRange, schools, guidances, bookings]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-300 border-t-blue-500 mb-4 mx-auto"></div>
+          <p className="text-xl text-gray-600 font-medium">กำลังโหลดข้อมูลแดชบอร์ด...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg border border-red-200">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">เกิดข้อผิดพลาด</h2>
+          <p className="text-red-700 mb-6">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+            ลองใหม่อีกครั้ง
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
@@ -185,7 +244,16 @@ export default function DashboardClient({
           <h3 className="text-xl font-bold text-gray-800 mb-4">10 อันดับจังหวัดที่มีโรงเรียน (ที่อนุมัติแล้ว)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={schoolsByProvinceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+              <Pie
+                data={schoolsByProvinceData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                fill="#8884d8"
+                label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
+              >
                 {schoolsByProvinceData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}

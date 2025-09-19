@@ -626,22 +626,6 @@ export default function ActivityHistoryPage() {
           </div>
         )}
 
-        {/* Controls */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <div className="flex flex-wrap gap-4 items-center justify-end">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="🔍 ค้นหาในตาราง..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">

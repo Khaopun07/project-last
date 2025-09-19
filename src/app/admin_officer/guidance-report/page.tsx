@@ -217,7 +217,7 @@ const ActivitiesTable: FC<{ activities: Guidance[] }> = ({ activities }) => {
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap gap-2 items-center">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    กิจกรรมแนะแนวที่: {activity.Sc_name || '(ไม่พบชื่อโรงเรียน)'}
+                    {activity.Sc_name || '(ไม่พบชื่อโรงเรียน)'}
                   </h3>
                   <StatusTag status={activity.status} />
                   <CategoryTag category={activity.Category} />

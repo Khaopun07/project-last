@@ -310,20 +310,6 @@ export default function BookingFormPage() {
     }, 1000);
   };
 
-  const handleReset = () => {
-    const selectedTeacher = loggedInUser?.role === 'teacher'
-      ? teachers.find(t => t.Email === loggedInUser.email)
-      : null;
-
-    setForm({
-      ...emptyBooking,
-      GuidanceID: form.GuidanceID,
-      Username: selectedTeacher?.Username || '',
-    });
-    setError(null);
-    setSuccess(null);
-  };
-
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -561,14 +547,14 @@ export default function BookingFormPage() {
                 </div>
               </div>
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-end">
+              <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-between">
                 <button
                   type="button"
-                  onClick={handleReset}
+                  onClick={() => router.back()}
                   disabled={loading}
-                  className="px-8 py-3 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:transform-none"
+                  className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  รีเซ็ตฟอร์ม
+                  ย้อนกลับ
                 </button>
                 <button
                   type="button"

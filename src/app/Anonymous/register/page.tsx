@@ -25,14 +25,6 @@ const faculties = [
   'โครงการจัดตั้งคณะแพทยศาสตร์',
 ];
 
-const formFields = [
-  { label: 'First Name', key: 'fname', type: 'text' },
-  { label: 'Last Name', key: 'lname', type: 'text' },
-  { label: 'Username', key: 'username', type: 'text' },
-  { label: 'Email', key: 'email', type: 'email' },
-  { label: 'Password', key: 'password', type: 'password' },
-] as const;
-
 // Define a type for the form state for better type safety.
 type FormData = {
   role: 'officer' | 'teacher';
@@ -138,100 +130,127 @@ export default function RegisterPage() {
           </select>
         </div>
 
-        {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {formFields.map((field) => (
-            <div key={field.key}>
-              <label className="block font-semibold mb-2 text-black">{field.label}:</label>
+          {/* Teacher-specific Prefix field */}
+          {form.role === 'teacher' && (
+            <div>
+              <label className="block font-semibold mb-2 text-black">คำนำหน้า:</label>
               <input
-                type={field.type}
-                placeholder={field.label}
-                value={form[field.key]}
-                onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-                required
+                type="text"
+                placeholder="คำนำหน้า"
+                value={form.prefix}
+                onChange={(e) => setForm({ ...form, prefix: e.target.value })}
                 className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
             </div>
-          ))}
+          )}
+
+          {/* Common Fields */}
+          <div>
+            <label className="block font-semibold mb-2 text-black">ชื่อ:</label>
+            <input
+              type="text"
+              placeholder="ชื่อ"
+              value={form.fname}
+              onChange={(e) => setForm({ ...form, fname: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2 text-black">นามสกุล:</label>
+            <input
+              type="text"
+              placeholder="นามสกุล"
+              value={form.lname}
+              onChange={(e) => setForm({ ...form, lname: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2 text-black">ชื่อผู้ใช้:</label>
+            <input
+              type="text"
+              placeholder="ชื่อผู้ใช้"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2 text-black">อีเมล:</label>
+            <input
+              type="email"
+              placeholder="อีเมล"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2 text-black">รหัสผ่าน:</label>
+            <input
+              type="password"
+              placeholder="รหัสผ่าน"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2 text-black">เบอร์โทร:</label>
+            <input
+              type="text"
+              placeholder="Phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
         </div>
 
         {/* Officer Fields */}
         {form.role === 'officer' && (
-          <>
-            <div>
-              <label className="block font-semibold mb-2 text-black">คณะ (Position):</label>
-              <select
-                value={form.position}
-                onChange={(e) => setForm({ ...form, position: e.target.value })}
-                required
-                className="w-full border border-blue-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              >
-                <option value="">-- เลือกคณะ --</option>
-                {faculties.map((f) => ( // Changed variable name to avoid shadowing
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2 text-black">เบอร์โทร:</label>
-              <input
-                type="text"
-                placeholder="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              />
-            </div>
-          </>
+          <div>
+            <label className="block font-semibold mb-2 text-black">คณะ (Position):</label>
+            <select
+              value={form.position}
+              onChange={(e) => setForm({ ...form, position: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            >
+              <option value="">-- เลือกคณะ --</option>
+              {faculties.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
         {/* Teacher Fields */}
         {form.role === 'teacher' && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block font-semibold mb-2 text-black">คำนำหน้า:</label>
-                <input
-                  type="text"
-                  placeholder="Prefix"
-                  value={form.prefix}
-                  onChange={(e) => setForm({ ...form, prefix: e.target.value })}
-                  className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-2 text-black">เบอร์โทร:</label>
-                <input
-                  type="text"
-                  placeholder="Phone"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full border border-blue-300 p-3 rounded-xl text-black placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2 text-black">คณะ:</label>
-              <select
-                value={form.faculty}
-                onChange={(e) => setForm({ ...form, faculty: e.target.value })}
-                required
-                className="w-full border border-blue-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              >
-                <option value="">-- เลือกคณะ --</option>
-                {faculties.map((f) => ( // Changed variable name to avoid shadowing
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
+          <div>
+            <label className="block font-semibold mb-2 text-black">คณะ:</label>
+            <select
+              value={form.faculty}
+              onChange={(e) => setForm({ ...form, faculty: e.target.value })}
+              required
+              className="w-full border border-blue-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            >
+              <option value="">-- เลือกคณะ --</option>
+              {faculties.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
         {/* Buttons */}

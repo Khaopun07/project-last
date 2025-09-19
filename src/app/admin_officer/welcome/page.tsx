@@ -6,22 +6,7 @@ import { useRouter } from 'next/navigation';
 
 export default function OfficerHomePage() {
   const [isOfficer, setIsOfficer] = useState<boolean | null>(null);
-  const [currentBg, setCurrentBg] = useState<number>(0);
   const router = useRouter();
-
-  const backgrounds = [
-    'https://scidi.tsu.ac.th/private/science/%E0%B9%80%E0%B8%95%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%A1%E0%B8%9E%E0%B8%9A%E0%B8%81%E0%B8%B1%E0%B8%9A%20%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%AA%E0%B8%B1%E0%B8%9B%E0%B8%94%E0%B8%B2%E0%B8%AB%E0%B9%8C%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B9%8C%E0%B9%81%E0%B8%AB%E0%B9%88%E0%B8%87%E0%B8%8A%E0%B8%B2%E0%B8%95%E0%B8%B4%20%E0%B8%AA%E0%B9%88%E0%B8%A7%E0%B8%99%E0%B8%A0%E0%B8%B9%E0%B8%A1%E0%B8%B4%E0%B8%A0%E0%B8%B2%E0%B8%84%20%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%88%E0%B8%B3%E0%B8%9B%E0%B8%B5%202568/%E0%B8%9B%E0%B8%81%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B9%80%E0%B8%9E%E0%B8%88%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B9%8C.jpg',
-    'https://scidi.tsu.ac.th/private/korakot.p/Banner%20SDGs.jpg',
-    'https://scidi.tsu.ac.th/private/korakot.p/ETA.jpg'
-  ];
-
-  // Background slideshow
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentBg(prev => (prev + 1) % backgrounds.length);
-    }, 5000); // เปลี่ยนทุก 5 วินาที
-    return () => clearInterval(timer);
-  }, []);
 
   // Check role
   useEffect(() => {
@@ -40,21 +25,21 @@ export default function OfficerHomePage() {
       description: 'สร้าง แก้ไข และลบกิจกรรมแนะแนว',
       icon: 'calendar',
       color: 'from-blue-500 to-purple-500',
-      action: () => router.push('/index/admin_officer/manage_data')
+      action: () => router.push('/admin_officer/manage_data')
     },
     {
       title: 'ตรวจสอบโรงเรียน',
       description: 'อนุมัติหรือปฏิเสธโรงเรียนที่เสนอเข้าระบบ',
       icon: 'school',
       color: 'from-green-500 to-blue-500',
-      action: () => router.push('/index/admin_officer/welcome/dashboard')
+      action: () => router.push('/admin_officer/manage/schoolP_ad')
     },
     {
       title: 'รายงาน',
       description: 'ดูสถิติและรายงานกิจกรรมทั้งหมด',
       icon: 'history',
       color: 'from-orange-500 to-red-500',
-      action: () => router.push('/index/admin_officer/guidance-report')
+      action: () => router.push('/admin_officer/welcome/dashboard')
     }
   ];
 
@@ -81,38 +66,26 @@ export default function OfficerHomePage() {
   if (!isOfficer) return null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background slideshow */}
-      {backgrounds.map((bg, index) => (
-        <div
-          key={index}
-          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${index === currentBg ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: `url('${bg}')` }}
-        />
-      ))}
-
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/20"></div>
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100">
       {/* Quick Actions */}
-      <main className="relative z-10 min-h-screen flex flex-col justify-end max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-5xl font-extrabold text-white mb-8 text-center">
+      <main className="min-h-screen flex flex-col items-center justify-center max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-5xl font-extrabold text-transparent bg-gradient-to-r from-blue-700 via-slate-700 to-gray-700 bg-clip-text mb-12 text-center">
           เจ้าหน้าที่ระบบแนะแนว
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {quickActions.map((action, index) => (
             <div
               key={index}
               onClick={action.action}
-              className="cursor-pointer rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition duration-300 bg-white"
+              className="cursor-pointer group rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300 bg-white border border-gray-100"
             >
               <div className="p-6 flex flex-col items-start">
-                <div className={`w-14 h-14 flex items-center justify-center rounded-xl mb-4 bg-gradient-to-r ${action.color}`}>
+                <div className={`w-14 h-14 flex items-center justify-center rounded-xl mb-4 bg-gradient-to-r ${action.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={getIcon(action.icon)} />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold mb-1">{action.title}</h3>
+                <h3 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">{action.title}</h3>
                 <p className="text-gray-600 text-sm">{action.description}</p>
               </div>
             </div>
