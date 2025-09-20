@@ -253,13 +253,10 @@ export class SimplePDFGenerator {
     this.setFont(PDF_CONFIG.fonts.body);
     this.doc.setTextColor(...PDF_CONFIG.colors.text);
     
-    this.addLine(`รหัสกิจกรรม: ${data.guidanceInfo.id}`, this.margin + 5);
-    this.currentY -= 7; // Reset for next column
+    this.addLine(`เวลา: ${data.guidanceInfo.startTime} - ${data.guidanceInfo.endTime}`, this.margin + 5);
+    this.currentY -= 5; // Reset for next column
     this.addLine(`วันที่: ${data.guidanceInfo.date}`, this.pageWidth / 2 + 5);
     
-    this.addLine(`เวลา: ${data.guidanceInfo.startTime} - ${data.guidanceInfo.endTime}`, this.margin + 5);
-    this.currentY -= 7; // Reset for next column
-    this.addLine(`สถานะ: ${data.guidanceInfo.status}`, this.pageWidth / 2 + 5);
 
     this.currentY += 10;
   }
