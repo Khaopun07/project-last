@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback } from 'react';
+import Swal from 'sweetalert2';
 
 type Booking = {
   Book_ID: string;
@@ -73,11 +74,8 @@ export default function ActivityHistoryPage() {
   const [error, setError] = useState<string | null>(null);
   
   // Modal states for editing
-  const [showEditBookingModal, setShowEditBookingModal] = useState(false);
+  const [showBookingEditForm, setShowBookingEditForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-
-  const [showEditSchoolModal, setShowEditSchoolModal] = useState(false);
-  const [editingSchool, setEditingSchool] = useState<ProposedSchool | null>(null);
 
   // Loading state for initial authentication check
   const [initialLoading, setInitialLoading] = useState(true);
@@ -355,34 +353,47 @@ export default function ActivityHistoryPage() {
   // --- Handler Functions for Edit/Delete ---
 
   const handleDeleteBooking = async (bookingId: string) => {
-    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองรหัส #${bookingId}?`)) {
-      return;
-    }
-    try {
-      const res = await fetch(`/api/auth/book/${bookingId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถลบข้อมูลได้' }));
-        throw new Error(errorData.message);
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการยกเลิกการจองใช่หรือไม่?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ยกเลิกเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/auth/book/${bookingId}`, {
+            method: 'DELETE',
+          });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถลบข้อมูลได้' }));
+            throw new Error(errorData.message);
+          }
+          Swal.fire(
+            'สำเร็จ!',
+            'การจองของคุณถูกยกเลิกแล้ว',
+            'success'
+          );
+          fetchHistory(); // Refresh the list
+        } catch (err: any) {
+          console.error('Error deleting booking:', err);
+          Swal.fire(
+            'เกิดข้อผิดพลาด!',
+            `เกิดข้อผิดพลาดในการยกเลิกการจอง: ${err.message}`,
+            'error'
+          );
+        }
       }
-      alert('ยกเลิกการจองสำเร็จ');
-      fetchHistory(); // Refresh the list
-    } catch (err: any) {
-      console.error('Error deleting booking:', err);
-      setError(`เกิดข้อผิดพลาดในการยกเลิกการจอง: ${err.message}`);
-    }
-  };
-
-  const handleEditBookingClick = (booking: Booking) => {
-    setEditingBooking(booking);
-    setShowEditBookingModal(true);
+    });
   };
 
   const handleUpdateBooking = async (updatedBooking: Booking) => {
-    if (!editingBooking) return;
+    if (!updatedBooking || !updatedBooking.Book_ID) return;
     try {
-      const res = await fetch(`/api/auth/book/${editingBooking.Book_ID}`, {
+      const res = await fetch(`/api/auth/book/${updatedBooking.Book_ID}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedBooking),
@@ -391,43 +402,33 @@ export default function ActivityHistoryPage() {
         const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถอัปเดตข้อมูลได้' }));
         throw new Error(errorData.message);
       }
-      alert('อัปเดตการจองสำเร็จ');
-      setShowEditBookingModal(false);
-      setEditingBooking(null);
+      Swal.fire({
+        title: 'สำเร็จ!',
+        text: 'อัปเดตการจองสำเร็จ',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      }).then(() => {
+        setShowBookingEditForm(false);
+        setEditingBooking(null);
+      });
       fetchHistory();
     } catch (err: any) {
       console.error('Error updating booking:', err);
-      setError(`เกิดข้อผิดพลาดในการอัปเดตการจอง: ${err.message}`);
+      Swal.fire(
+        'เกิดข้อผิดพลาด!',
+        `เกิดข้อผิดพลาดในการอัปเดตการจอง: ${err.message}`,
+        'error'
+      );
+      setShowBookingEditForm(false);
+      setEditingBooking(null);
     }
-  };
-
-  const handleDeleteSchool = async (schoolId: string, schoolName: string) => {
-    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบโรงเรียนที่เสนอ "${schoolName}"? การกระทำนี้ไม่สามารถย้อนกลับได้`)) {
-      return;
-    }
-    try {
-      const res = await fetch(`/api/school/${schoolId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถลบข้อมูลได้' }));
-        throw new Error(errorData.message);
-      }
-      alert('ลบโรงเรียนที่เสนอสำเร็จ');
-      fetchHistory();
-    } catch (err: any) {
-      console.error('Error deleting school:', err);
-      setError(`เกิดข้อผิดพลาดในการลบโรงเรียน: ${err.message}`);
-    }
-  };
-
-  const handleEditSchoolClick = (school: ProposedSchool) => {
-    setEditingSchool(school);
-    setShowEditSchoolModal(true);
   };
 
   const handleUpdateSchool = async (updatedSchool: ProposedSchool) => {
-    if (!editingSchool) return;
+    if (!updatedSchool || !updatedSchool.Sc_id) return;
     try {
-      const res = await fetch(`/api/school/${editingSchool.Sc_id}`, {
+      const res = await fetch(`/api/school/${updatedSchool.Sc_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedSchool),
@@ -436,14 +437,120 @@ export default function ActivityHistoryPage() {
         const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถอัปเดตข้อมูลได้' }));
         throw new Error(errorData.message);
       }
-      alert('อัปเดตข้อมูลโรงเรียนสำเร็จ');
-      setShowEditSchoolModal(false);
-      setEditingSchool(null);
+      Swal.fire({
+        title: 'สำเร็จ!',
+        text: 'อัปเดตข้อมูลโรงเรียนสำเร็จ',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
       fetchHistory();
     } catch (err: any) {
       console.error('Error updating school:', err);
-      setError(`เกิดข้อผิดพลาดในการอัปเดตข้อมูลโรงเรียน: ${err.message}`);
+      Swal.fire(
+        'เกิดข้อผิดพลาด!',
+        `เกิดข้อผิดพลาดในการอัปเดตข้อมูลโรงเรียน: ${err.message}`,
+        'error'
+      );
     }
+  };
+
+  const handleEditSchoolClick = (school: ProposedSchool) => {
+    Swal.fire({
+      title: `<span class="flex items-center justify-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                แก้ไขโรงเรียนที่เสนอ
+              </span>`,
+      html: `
+        <div class="space-y-4 text-left max-h-[60vh] overflow-y-auto p-4">
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">ชื่อโรงเรียน</label><input id="swal-sc-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_name || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">ที่อยู่</label><input id="swal-sc-address" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_address || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">ตำบล</label><input id="swal-sc-subdistrict" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_subdistrict || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">อำเภอ</label><input id="swal-sc-district" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_district || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">จังหวัด</label><input id="swal-sc-province" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_province || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">รหัสไปรษณีย์</label><input id="swal-sc-postal" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_postal || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">เบอร์โทรศัพท์โรงเรียน</label><input id="swal-sc-phone" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_phone || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">อีเมลโรงเรียน</label><input id="swal-sc-email" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_email || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">เว็บไซต์โรงเรียน</label><input id="swal-sc-website" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Sc_website || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">ชื่อผู้ติดต่อ</label><input id="swal-contact-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Contact_name || ''}"></div>
+          <div><label class="block text-sm font-semibold text-gray-700 mb-1">เบอร์ผู้ติดต่อ</label><input id="swal-contact-no" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${school.Contact_no || ''}"></div>
+        </div>
+      `,
+      width: '800px',
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึกการแก้ไข',
+      cancelButtonText: 'ยกเลิก',
+      customClass: {
+        popup: 'rounded-2xl shadow-xl border border-gray-100',
+        title: 'text-2xl font-bold text-gray-800 pt-6',
+        confirmButton: 'px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300',
+        cancelButton: 'px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-sm hover:bg-gray-300 transition-all duration-300'
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        return {
+          ...school,
+          Sc_name: (document.getElementById('swal-sc-name') as HTMLInputElement).value,
+          Sc_address: (document.getElementById('swal-sc-address') as HTMLInputElement).value,
+          Sc_subdistrict: (document.getElementById('swal-sc-subdistrict') as HTMLInputElement).value,
+          Sc_district: (document.getElementById('swal-sc-district') as HTMLInputElement).value,
+          Sc_province: (document.getElementById('swal-sc-province') as HTMLInputElement).value,
+          Sc_postal: (document.getElementById('swal-sc-postal') as HTMLInputElement).value,
+          Sc_phone: (document.getElementById('swal-sc-phone') as HTMLInputElement).value,
+          Sc_email: (document.getElementById('swal-sc-email') as HTMLInputElement).value,
+          Sc_website: (document.getElementById('swal-sc-website') as HTMLInputElement).value,
+          Contact_name: (document.getElementById('swal-contact-name') as HTMLInputElement).value,
+          Contact_no: (document.getElementById('swal-contact-no') as HTMLInputElement).value,
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleUpdateSchool(result.value);
+      }
+    });
+  };
+
+  const handleDeleteSchool = async (schoolId: string, schoolName: string) => {
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบโรงเรียนที่เสนอ "${schoolName}"? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/school/${schoolId}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'ไม่สามารถลบข้อมูลได้' }));
+            throw new Error(errorData.message);
+          }
+          Swal.fire(
+            'สำเร็จ!',
+            'ลบโรงเรียนที่เสนอเรียบร้อยแล้ว',
+            'success'
+          );
+          fetchHistory();
+        } catch (err: any) {
+          console.error('Error deleting school:', err);
+          Swal.fire(
+            'เกิดข้อผิดพลาด!',
+            `เกิดข้อผิดพลาดในการลบโรงเรียน: ${err.message}`,
+            'error'
+          );
+        }
+      }
+    });
+  };
+
+  const handleEditBookingClick = (booking: Booking) => {
+    setEditingBooking(booking);
+    setShowBookingEditForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Helper functions
@@ -614,6 +721,17 @@ export default function ActivityHistoryPage() {
           </p>
         </div>
 
+        {/* Edit Booking Form */}
+        {showBookingEditForm && editingBooking && (
+          <BookingEditForm
+            booking={editingBooking}
+            onSave={handleUpdateBooking}
+            onCancel={() => {
+              setShowBookingEditForm(false);
+              setEditingBooking(null);
+            }}
+          />
+        )}
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 mb-8">
@@ -1202,46 +1320,20 @@ export default function ActivityHistoryPage() {
             </div>
           </div>
         </div>
-
-        {/* Edit Modals */}
-        {showEditBookingModal && editingBooking && (
-          <EditBookingModal 
-            booking={editingBooking}
-            onClose={() => {
-              setShowEditBookingModal(false);
-              setEditingBooking(null);
-            }}
-            onSave={handleUpdateBooking}
-          />
-        )}
-
-        {showEditSchoolModal && editingSchool && (
-          <EditSchoolModal
-            school={editingSchool}
-            onClose={() => {
-              setShowEditSchoolModal(false);
-              setEditingSchool(null);
-            }}
-            onSave={handleUpdateSchool}
-          />
-        )}
       </main>
     </div>
   );
 }
 
-// --- Modal Components ---
-
-function EditBookingModal({ booking, onClose, onSave }: { booking: Booking, onClose: () => void, onSave: (updatedBooking: Booking) => void }) {
+function BookingEditForm({ booking, onSave, onCancel }: { booking: Booking, onSave: (data: Booking) => void, onCancel: () => void }) {
   const [formData, setFormData] = useState(booking);
 
   useEffect(() => {
     setFormData(booking);
   }, [booking]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1249,82 +1341,44 @@ function EditBookingModal({ booking, onClose, onSave }: { booking: Booking, onCl
     onSave(formData);
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <form onSubmit={handleSubmit}>
-          <div className="p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">แก้ไขการจอง #{booking.Book_ID}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">จุดรับส่ง</label>
-                <input type="text" name="T_PickupPoint" value={formData.T_PickupPoint || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (ชื่อ)</label>
-                <input type="text" name="Std_name1" value={formData.Std_name1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (รหัส)</label>
-                <input type="text" name="Std_ID1" value={formData.Std_ID1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (ชื่อ)</label>
-                <input type="text" name="Std_name2" value={formData.Std_name2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (รหัส)</label>
-                <input type="text" name="Std_ID2" value={formData.Std_ID2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">ยกเลิก</button>
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md">บันทึก</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function EditSchoolModal({ school, onClose, onSave }: { school: ProposedSchool, onClose: () => void, onSave: (updatedSchool: ProposedSchool) => void }) {
-  const [formData, setFormData] = useState(school);
-
-  useEffect(() => { setFormData(school); }, [school]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
+  const pickupPoints = [
+    'หน้าคณะวิทยาศาสตร์',
+    'หน้าหอพักอาจารย์',
+    'หน้ามหาวิทยาลัยทักษิณ',
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <form onSubmit={handleSubmit}>
-          <div className="p-6"><h3 className="text-lg font-bold text-gray-800 mb-4">แก้ไขโรงเรียนที่เสนอ</h3>
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div><label className="block text-sm font-medium text-gray-700">ชื่อโรงเรียน</label><input type="text" name="Sc_name" value={formData.Sc_name || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">ที่อยู่</label><input type="text" name="Sc_address" value={formData.Sc_address || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">ตำบล</label><input type="text" name="Sc_subdistrict" value={formData.Sc_subdistrict || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">อำเภอ</label><input type="text" name="Sc_district" value={formData.Sc_district || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">จังหวัด</label><input type="text" name="Sc_province" value={formData.Sc_province || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">รหัสไปรษณีย์</label><input type="text" name="Sc_postal" value={formData.Sc_postal || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์โรงเรียน</label><input type="tel" name="Sc_phone" value={formData.Sc_phone || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">อีเมลโรงเรียน</label><input type="email" name="Sc_email" value={formData.Sc_email || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">เว็บไซต์โรงเรียน</label><input type="url" name="Sc_website" value={formData.Sc_website || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">ชื่อผู้ติดต่อ</label><input type="text" name="Contact_name" value={formData.Contact_name || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-              <div><label className="block text-sm font-medium text-gray-700">เบอร์ผู้ติดต่อ</label><input type="tel" name="Contact_no" value={formData.Contact_no || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" /></div>
-            </div>
-          </div>
-          <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3"><button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">ยกเลิก</button><button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md">บันทึก</button></div>
-        </form>
-      </div>
+    <div className="bg-white p-6 border rounded-lg shadow-md mb-6 border-l-4 border-blue-400">
+      <h2 className="text-lg font-semibold text-blue-800 mb-4">✏️ แก้ไขการจอง</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">จุดรับส่ง</label>
+          <select name="T_PickupPoint" value={formData.T_PickupPoint || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            <option value="">-- เลือกจุดรับส่ง --</option>
+            {pickupPoints.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (ชื่อ)</label>
+          <input type="text" name="Std_name1" value={formData.Std_name1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (รหัส)</label>
+          <input type="text" name="Std_ID1" value={formData.Std_ID1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (ชื่อ)</label>
+          <input type="text" name="Std_name2" value={formData.Std_name2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (รหัส)</label>
+          <input type="text" name="Std_ID2" value={formData.Std_ID2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+        </div>
+        <div className="flex gap-2 justify-end pt-4 border-t">
+          <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">ยกเลิก</button>
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md">บันทึกการแก้ไข</button>
+        </div>
+      </form>
     </div>
   );
 }

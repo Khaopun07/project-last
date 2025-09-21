@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 type Booking = {
   Book_ID: string;
@@ -54,7 +55,6 @@ export default function BookingFormPage() {
   const [form, setForm] = useState<Omit<Booking, 'Book_ID'>>(emptyBooking);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [success, setSuccess] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
@@ -209,13 +209,11 @@ export default function BookingFormPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (error) setError(null);
-    if (success) setSuccess(null);
   };
 
   const handleSubmit = () => {
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     // Validation
     if (!form.GuidanceID) {
@@ -225,7 +223,12 @@ export default function BookingFormPage() {
     }
 
     if (!form.T_PickupPoint) {
-      setError('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      Swal.fire({
+        icon: "error",
+        title: "ข้อผิดพลาด",
+        text: "กรุณาเลือกจุดรับส่งก่อนทำการบันทึก",
+        footer: 'หากไม่มีจุดรับส่ง กรุณาติดต่อเจ้าหน้าที่'
+      });
       setLoading(false);
       return;
     }
@@ -293,15 +296,16 @@ export default function BookingFormPage() {
         }
 
         const result = await res.json();
-        setSuccess('บันทึกการจองเรียบร้อยแล้ว!');
+        Swal.fire({
+          title: "สำเร็จ!",
+          text: "บันทึกการจองเรียบร้อยแล้ว!",
+          icon: "success"
+        });
         setForm({
           ...emptyBooking,
           GuidanceID: form.GuidanceID,
           Username: form.Username,
         });
-
-        setTimeout(() => setSuccess(null), 5000);
-
       } catch (error: any) {
         setError(error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
       } finally {
@@ -369,17 +373,6 @@ export default function BookingFormPage() {
             กรอกข้อมูลเพื่อจองและลงทะเบียนกิจกรรมแนะแนว
           </p>
         </div>
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-8">
-            <div className="flex items-center">
-              <svg className="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-green-800 font-semibold">{success}</p>
-            </div>
-          </div>
-        )}
 
         {/* Error Message */}
         {error && (

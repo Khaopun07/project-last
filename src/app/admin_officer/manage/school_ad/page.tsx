@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
 
 type School = {
   Sc_id: string;
@@ -41,8 +42,6 @@ export default function SchoolPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
-  const [showDetailPopup, setShowDetailPopup] = useState<boolean>(false);
-  const [selectedItem, setSelectedItem] = useState<School | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [provinceFilter, setProvinceFilter] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'province' | 'id'>('name');
@@ -94,8 +93,11 @@ export default function SchoolPage() {
     e.preventDefault();
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
-      setError('กรุณาแก้ไขข้อมูลให้ถูกต้อง:\n' + validationErrors.join('\n'));
-      return;
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ถูกต้อง',
+        html: validationErrors.map(e => `<p>${e}</p>`).join(''),
+      });      return;
     }
 
     try {
@@ -122,43 +124,58 @@ export default function SchoolPage() {
       }
 
       await fetchSchool();
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: editingId ? 'อัปเดตข้อมูลสำเร็จ!' : 'เพิ่มข้อมูลสำเร็จ!',
+        timer: 1500,
+        showConfirmButton: false,
+      });
       resetForm();
-      setError(null);
     } catch (error: any) {
       console.error('Submit error:', error);
-      setError(error.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล',
+      });
     }
   };
 
   const handleEdit = (school: School) => {
     setForm(school);
     setEditingId(school.Sc_id);
-    setSelectedItem(null);
-    setShowDetailPopup(false);
     setShowForm(true);
     setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`ยืนยันการลบโรงเรียน "${name}"?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
-
-    try {
-      const res = await fetch(`/api/school/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบโรงเรียน "${name}"? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/school/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+          }
+          await fetchSchool();
+          Swal.fire('ลบแล้ว!', `โรงเรียน "${name}" ถูกลบเรียบร้อยแล้ว`, 'success');
+        } catch (error: any) {
+          console.error('Delete error:', error);
+          Swal.fire('เกิดข้อผิดพลาด!', error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล', 'error');
+        }
       }
-
-      await fetchSchool();
-      setShowDetailPopup(false);
-      setError(null);
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      setError(error.message);
-    }
+    });
   };
 
   const resetForm = () => {
@@ -168,14 +185,51 @@ export default function SchoolPage() {
     setError(null);
   };
 
-  const openDetailPopup = (school: School) => {
-    setSelectedItem(school);
-    setShowDetailPopup(true);
-  };
+  const showDetails = (school: School) => {
+    const detailsHtml = `
+      <div class="text-left p-4 space-y-4">
+        <div class="bg-blue-50 p-3 rounded-lg">
+          <label class="text-blue-700 font-medium text-sm">รหัสโรงเรียน</label>
+          <p class="text-blue-900 font-mono">${school.Sc_id}</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg">
+          <label class="text-green-700 font-medium text-sm">ชื่อโรงเรียน</label>
+          <p class="text-green-900">${school.Sc_name}</p>
+        </div>
+        <div class="bg-yellow-50 p-3 rounded-lg">
+          <label class="text-yellow-700 font-medium text-sm">ที่อยู่</label>
+          <p class="text-yellow-900">${school.Sc_address || '-'}</p>
+        </div>
+        <div class="bg-purple-50 p-3 rounded-lg">
+          <label class="text-purple-700 font-medium text-sm">ตำบล/อำเภอ/จังหวัด</label>
+          <p class="text-purple-900">${school.Sc_subdistrict || '-'} / ${school.Sc_district || '-'} / ${school.Sc_province || '-'}</p>
+        </div>
+        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">📞 ข้อมูลติดต่อ</h4>
+        <p><b>ผู้ติดต่อ:</b> ${school.Contact_name || '-'}</p>
+        <p><b>เบอร์ติดต่อ:</b> ${school.Contact_no || '-'}</p>
+        <p><b>เบอร์โรงเรียน:</b> ${school.Sc_phone || '-'}</p>
+        <p><b>อีเมล:</b> ${school.Sc_email || '-'}</p>
+        <p><b>เว็บไซต์:</b> ${school.Sc_website || '-'}</p>
+      </div>
+    `;
 
-  const closeDetailPopup = () => {
-    setShowDetailPopup(false);
-    setSelectedItem(null);
+    Swal.fire({
+      title: `<strong>รายละเอียด: ${school.Sc_name}</strong>`,
+      html: detailsHtml,
+      showCloseButton: true,
+      showCancelButton: true,
+      focusConfirm: false,
+      confirmButtonText: '✏️ แก้ไข',
+      cancelButtonText: '🗑️ ลบ',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleEdit(school);
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        handleDelete(school.Sc_id, school.Sc_name);
+      }
+    });
   };
 
   // Get unique provinces for filter
@@ -543,7 +597,7 @@ export default function SchoolPage() {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => openDetailPopup(school)}
+                          onClick={() => showDetails(school)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105"
                         >
                           👁️ รายละเอียด
@@ -576,125 +630,6 @@ export default function SchoolPage() {
           </div>
         )}
 
-        {/* Detail Popup Modal */}
-        {showDetailPopup && selectedItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="bg-blue-500 text-white p-4 rounded-t-lg">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">🏫 รายละเอียดโรงเรียน</h2>
-                  <button
-                    onClick={closeDetailPopup}
-                    className="text-white hover:bg-blue-600 rounded-full p-2"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {/* Basic Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">📋 ข้อมูลพื้นฐาน</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 p-3 rounded">
-                      <label className="text-blue-700 font-medium text-sm">รหัสโรงเรียน</label>
-                      <p className="text-gray-800 font-medium text-lg">{selectedItem.Sc_id}</p>
-                    </div>
-
-                    <div className="bg-green-50 p-3 rounded md:col-span-2">
-                      <label className="text-green-700 font-medium text-sm">ชื่อโรงเรียน</label>
-                      <p className="text-gray-800 font-medium text-lg">{selectedItem.Sc_name}</p>
-                    </div>
-
-                    <div className="bg-yellow-50 p-3 rounded md:col-span-3">
-                      <label className="text-yellow-700 font-medium text-sm">ที่อยู่</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_address || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Address Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">📍 ข้อมูลที่อยู่</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-purple-50 p-3 rounded">
-                      <label className="text-purple-700 font-medium text-sm">ตำบล</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_subdistrict || '-'}</p>
-                    </div>
-
-                    <div className="bg-indigo-50 p-3 rounded">
-                      <label className="text-indigo-700 font-medium text-sm">อำเภอ</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_district || '-'}</p>
-                    </div>
-
-                    <div className="bg-teal-50 p-3 rounded">
-                      <label className="text-teal-700 font-medium text-sm">จังหวัด</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_province || '-'}</p>
-                    </div>
-
-                    <div className="bg-orange-50 p-3 rounded">
-                      <label className="text-orange-700 font-medium text-sm">รหัสไปรษณีย์</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_postcode || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">📞 ข้อมูลการติดต่อ</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-red-50 p-3 rounded">
-                      <label className="text-red-700 font-medium text-sm">เบอร์โทรศัพท์โรงเรียน</label>
-                      <p className="text-gray-800 font-medium">📞 {selectedItem.Sc_phone || '-'}</p>
-                    </div>
-
-                    <div className="bg-pink-50 p-3 rounded">
-                      <label className="text-pink-700 font-medium text-sm">อีเมล</label>
-                      <p className="text-gray-800 font-medium break-all">📧 {selectedItem.Sc_email || '-'}</p>
-                    </div>
-
-                    <div className="bg-cyan-50 p-3 rounded">
-                      <label className="text-cyan-700 font-medium text-sm">เว็บไซต์</label>
-                      <p className="text-gray-800 font-medium break-all">🌐 {selectedItem.Sc_website || '-'}</p>
-                    </div>
-
-                    <div className="bg-lime-50 p-3 rounded">
-                      <label className="text-lime-700 font-medium text-sm">ชื่อผู้ติดต่อ</label>
-                      <p className="text-gray-800 font-medium">👤 {selectedItem.Contact_name || '-'}</p>
-                    </div>
-
-                    <div className="bg-amber-50 p-3 rounded">
-                      <label className="text-amber-700 font-medium text-sm">เบอร์ผู้ติดต่อ</label>
-                      <p className="text-gray-800 font-medium">📱 {selectedItem.Contact_no || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end pt-4 border-t">
-                  <button
-                    onClick={() => handleEdit(selectedItem)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    ✏️ แก้ไข
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedItem.Sc_id, selectedItem.Sc_name)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    🗑️ ลบ
-                  </button>
-                  <button
-                    onClick={closeDetailPopup}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    ❌ ปิด
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

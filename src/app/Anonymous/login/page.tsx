@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiUser, FiLock } from 'react-icons/fi';
+import Swal from 'sweetalert2';
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -24,7 +23,11 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || 'Login failed');
+        Swal.fire({
+          icon: 'error',
+          title: 'เข้าสู่ระบบไม่สำเร็จ',
+          text: data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+        });
         setLoading(false);
         return;
       }
@@ -44,22 +47,43 @@ export default function LoginPage() {
 
         window.dispatchEvent(new Event('authChanged'));
 
-        // alert(`Logged in as ${data.role}`); // Consider removing alert for better UX
         console.log('Login successful:', { email: form.email, role: data.role, token: data.token, data });
 
-        if (data.role?.toLowerCase() === 'officer') {
-          router.push('/admin_officer/welcome');
-        } else if (data.role?.toLowerCase() === 'teacher') {
-          router.push('/user_teacher/welcome');
+        const role = data.role?.toLowerCase();
+        let welcomeText;
+
+        if (role === 'officer') {
+          welcomeText = `ยินดีต้อนรับคุณ ${data.user?.Off_Fname || data.user?.Username}`;
         } else {
-          router.push('/Anonymous/register');
+          welcomeText = `ยินดีต้อนรับคุณ ${data.user?.F_name || data.user?.Username || data.role}`;
         }
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'เข้าสู่ระบบสำเร็จ!',
+          text: welcomeText,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        if (role === 'officer') router.push('/admin_officer/welcome');
+        else if (role === 'teacher') router.push('/user_teacher/welcome');
+        else router.push('/Anonymous/register');
+
       } else {
-        setError('No token returned from server.');
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่ได้รับข้อมูลยืนยันตัวตนจากเซิร์ฟเวอร์',
+        });
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาดที่ไม่คาดคิด',
+        text: 'กรุณาลองใหม่อีกครั้ง',
+      });
     } finally {
       setLoading(false);
     }
@@ -75,7 +99,6 @@ export default function LoginPage() {
         <h1 className="text-4xl font-extrabold text-center text-transparent bg-gradient-to-r from-blue-600 via-slate-700 to-gray-700 bg-clip-text mb-8">
           เข้าสู่ระบบ
         </h1>
-        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="relative">
             <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" />

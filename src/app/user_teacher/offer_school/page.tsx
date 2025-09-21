@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Swal from 'sweetalert2';
 
 type SchoolForm = {
   Sc_name: string;
@@ -73,7 +74,6 @@ const getIcon = (iconName: string) => {
 
 export default function ProposeSchoolPage() {
   const [form, setForm] = useState<SchoolForm>(emptyForm);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [proposedSchools, setProposedSchools] = useState<ProposedSchool[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -157,11 +157,8 @@ export default function ProposeSchoolPage() {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    if (message || error) {
-      setMessage(null);
-      setError(null);
-    }
-  }, [message, error]);
+    if (error) { setError(null); }
+  }, [error]);
 
   const validateForm = useCallback(() => {
     if (!form.Sc_name.trim()) {
@@ -178,7 +175,6 @@ export default function ProposeSchoolPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setMessage(null);
     setSubmitting(true);
 
     try {
@@ -214,7 +210,11 @@ export default function ProposeSchoolPage() {
         throw new Error(responseData.message || 'ไม่สามารถส่งคำขอได้');
       }
 
-      setMessage('ส่งคำขอเสนอข้อมูลโรงเรียนเรียบร้อยแล้ว กรุณารอการอนุมัติ');
+      Swal.fire({
+        title: "สำเร็จ!",
+        text: "ส่งคำขอเสนอข้อมูลโรงเรียนเรียบร้อยแล้ว กรุณารอการอนุมัติ",
+        icon: "success"
+      });
       setForm(emptyForm);
       fetchProposedSchools();
     } catch (err: any) {
@@ -269,101 +269,7 @@ export default function ProposeSchoolPage() {
             เสนอข้อมูลโรงเรียนใหม่เพื่อเข้าร่วมระบบกิจกรรมแนะแนว
           </p>
         </div>
-
-        {/* User Information Card */}
-        {/* <div className="max-w-md mx-auto mb-8">
-          {userLoading ? (
-            // Loading State
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse"></div>
-                <div className="flex-1">
-                  <div className="h-6 bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded-lg w-3/4 mb-1 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded-lg w-1/2 animate-pulse"></div>
-                </div>
-                <div className="w-20 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
-              </div>
-            </div>
-          ) : currentUser ? (
-            // User Found - แสดง TeacherID เพื่อ debug
-            <div className="bg-white/80 backdrop-blur-sm border border-indigo-200 rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl font-bold text-white">
-                    {getUserInitials()}
-                  </span>
-                </div>
-                
-                <div className="flex-1 text-left">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">
-                    {getDisplayName()}
-                  </h3>
-                  <div className="space-y-1">
-                    <p className="text-sm text-indigo-600 font-medium flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      @{currentUser.Username || 'ไม่พบข้อมูล'}
-                    </p>
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                      </svg>
-                      รหัส: {currentUser.TeacherID || 'ไม่พบข้อมูล'}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col items-end">
-                  <div className="flex items-center gap-2 text-green-600 mb-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">ออนไลน์</span>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {new Date().toLocaleDateString('th-TH')}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // No User Found
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-200 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-red-800">ไม่พบข้อมูลผู้ใช้</p>
-                  <p className="text-sm text-red-600">กรุณาเข้าสู่ระบบใหม่</p>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-red-200">
-                <button
-                  onClick={refreshUserData}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-2 px-4 rounded-lg font-medium transition-colors duration-200"
-                >
-                  รีเฟรชข้อมูล
-                </button>
-              </div>
-            </div>
-          )}
-        </div> */}
-
-        {/* Messages */}
-        {message && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg p-6 mb-8 shadow-lg" role="alert">
-            <div className="flex items-center">
-              <svg className="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-green-800 font-semibold text-lg">{message}</p>
-            </div>
-          </div>
-        )}
-
+        
         {error && (
           <div className="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 rounded-lg p-6 mb-8 shadow-lg" role="alert">
             <div className="flex items-center">

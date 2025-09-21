@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
 
 type Guidance = {
   GuidanceID: string;
@@ -67,8 +68,6 @@ export default function BookingPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [teacherFilter, setTeacherFilter] = useState('');
   const [pickupPointFilter, setPickupPointFilter] = useState('');
@@ -160,8 +159,11 @@ export default function BookingPage() {
 
       const selectedTeacher = teachers.find(t => t.Username === form.Username);
       if (!selectedTeacher) {
-        alert('กรุณาเลือกอาจารย์ที่ถูกต้อง');
-        return;
+        Swal.fire({
+          icon: 'error',
+          title: 'ข้อมูลไม่ถูกต้อง',
+          text: 'กรุณาเลือกอาจารย์ที่ถูกต้อง',
+        });        return;
       }
 
       const payload = { 
@@ -179,32 +181,55 @@ export default function BookingPage() {
       if (!res.ok) throw new Error(`Error: ${res.statusText}`);
 
       await fetchBookings();
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: editingId ? 'อัปเดตข้อมูลสำเร็จ!' : 'เพิ่มข้อมูลสำเร็จ!',
+        timer: 1500,
+        showConfirmButton: false,
+      });
       setForm(emptyBooking);
       setEditingId(null);
       setShowForm(false);
     } catch (error: any) {
-      alert(error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล',
+      });
     }
-  };
-
-  const handleEdit = (booking: Booking) => {
-    const { Book_ID, ...rest } = booking;
-    setForm(rest);
-    setEditingId(Book_ID);
-    setShowForm(true);
-    setShowDetailsModal(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(`ยืนยันการลบข้อมูลรหัส ${id}?`)) return;
-    try {
-      const res = await fetch(`/api/auth/book/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(`Error: ${res.statusText}`);
-      await fetchBookings();
-      setShowDetailsModal(false);
-    } catch (error: any) {
-      alert(error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล');
-    }
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบข้อมูลรหัส ${id} ใช่หรือไม่?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/auth/book/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error(`Error: ${res.statusText}`);
+          await fetchBookings();
+          Swal.fire(
+            'ลบแล้ว!',
+            'ข้อมูลการจองถูกลบเรียบร้อยแล้ว',
+            'success'
+          );
+        } catch (error: any) {
+          Swal.fire(
+            'เกิดข้อผิดพลาด!',
+            error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
+            'error'
+          );
+        }
+      }
+    });
   };
 
   // ฟังก์ชันสำหรับแสดงข้อมูลกิจกรรมในฟอร์ม
@@ -215,9 +240,56 @@ export default function BookingPage() {
     return `${schoolName} (${guidanceDate})`;
   };
 
+  const handleEdit = (booking: Booking) => {
+    const { Book_ID, ...rest } = booking;
+    setForm(rest);
+    setEditingId(Book_ID);
+    setShowForm(true);
+  };
+
   const showDetails = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setShowDetailsModal(true);
+    const detailsHtml = `
+      <div class="text-left p-4 space-y-4">
+        <div class="bg-blue-50 p-3 rounded-lg">
+          <label class="text-blue-700 font-medium text-sm">รหัสการจอง</label>
+          <p class="text-blue-900 font-mono">${booking.Book_ID}</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg">
+          <label class="text-green-700 font-medium text-sm">ชื่ออาจารย์</label>
+          <p class="text-green-900">${booking.Prefix || ''}${booking.F_name} ${booking.L_name}</p>
+        </div>
+        <div class="bg-orange-50 p-3 rounded-lg">
+          <label class="text-orange-700 font-medium text-sm">จุดรับส่ง</label>
+          <p class="text-orange-900">${booking.T_PickupPoint || '-'}</p>
+        </div>
+        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">👥 ข้อมูลนักเรียน</h4>
+        <p><b>คนที่ 1:</b> ${booking.Std_name1 || '-'} (${booking.Std_ID1 || '-'})</p>
+        <p><b>คนที่ 2:</b> ${booking.Std_name2 || '-'} (${booking.Std_ID2 || '-'})</p>
+      </div>
+    `;
+
+    Swal.fire({
+      title: `<strong>รายละเอียด: ${booking.Sc_name}</strong>`,
+      html: detailsHtml,
+      
+      imageHeight: 1500,
+      imageAlt: "A tall image",
+      showCloseButton: true,
+      showCancelButton: true,
+      focusConfirm: false,
+      confirmButtonText: '✏️ แก้ไข',
+      cancelButtonText: '🗑️ ลบ',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Edit action
+        handleEdit(booking);
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        // Delete action
+        handleDelete(booking.Book_ID);
+      }
+    });
   };
 
   const uniqueTeachersForFilter = useMemo(() => {
@@ -560,93 +632,6 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* Details Modal */}
-        {showDetailsModal && selectedBooking && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="bg-blue-500 p-4 rounded-t-lg">
-                <h3 className="text-white text-lg font-semibold">📋 รายละเอียดการจอง</h3>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <label className="text-blue-700 font-medium text-sm">รหัสการจอง</label>
-                    <p className="text-blue-900 font-mono">{selectedBooking.Book_ID}</p>
-                  </div>
-                  
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <label className="text-blue-700 font-medium text-sm">โรงเรียน</label>
-                    <p className="text-blue-900 font-medium">
-                      {selectedBooking.Sc_name || '(ไม่พบข้อมูลกิจกรรม)'}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <label className="text-green-700 font-medium text-sm">ชื่ออาจารย์</label>
-                    <p className="text-green-900">
-                      {`${selectedBooking.Prefix || ''}${selectedBooking.F_name} ${selectedBooking.L_name}`}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <label className="text-green-700 font-medium text-sm">เบอร์โทร</label>
-                    <p className="text-green-900 font-mono">{selectedBooking.T_Phone || '-'}</p>
-                  </div>
-                  
-                  <div className="bg-orange-50 p-3 rounded-lg md:col-span-2">
-                    <label className="text-orange-700 font-medium text-sm">จุดรับส่ง</label>
-                    <p className="text-orange-900">{selectedBooking.T_PickupPoint || '-'}</p>
-                  </div>
-                </div>
-
-                {/* Student Information */}
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-lg font-semibold text-blue-800 mb-3">👥 ข้อมูลนักเรียน</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-indigo-50 p-3 rounded-lg">
-                          <label className="text-indigo-700 font-medium text-sm">รหัสนิสิตคนที่ 1</label>
-                          <p className="text-indigo-900 font-mono">{selectedBooking.Std_ID1 || '-'}</p>
-                      </div>
-                      <div className="bg-indigo-50 p-3 rounded-lg">
-                          <label className="text-indigo-700 font-medium text-sm">ชื่อนิสิตคนที่ 1</label>
-                          <p className="text-indigo-900">{selectedBooking.Std_name1 || '-'}</p>
-                      </div>
-                      <div className="bg-purple-50 p-3 rounded-lg">
-                          <label className="text-purple-700 font-medium text-sm">รหัสนิสิตคนที่ 2</label>
-                          <p className="text-purple-900 font-mono">{selectedBooking.Std_ID2 || '-'}</p>
-                      </div>
-                      <div className="bg-purple-50 p-3 rounded-lg">
-                          <label className="text-purple-700 font-medium text-sm">ชื่อนิสิตคนที่ 2</label>
-                          <p className="text-purple-900">{selectedBooking.Std_name2 || '-'}</p>
-                      </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 justify-end mt-6 pt-4 border-t">
-                  <button 
-                    onClick={() => handleEdit(selectedBooking)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium"
-                  >
-                    ✏️ แก้ไข
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(selectedBooking.Book_ID)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium"
-                  >
-                    🗑️ ลบ
-                  </button>
-                  <button 
-                    onClick={() => setShowDetailsModal(false)}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium"
-                  >
-                    ❌ ปิด
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

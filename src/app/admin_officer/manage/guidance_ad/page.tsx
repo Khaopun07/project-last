@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
 
 type Guidance = {
   GuidanceID: string;
@@ -189,8 +190,6 @@ export default function GuidancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [showDetailPopup, setShowDetailPopup] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Guidance | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -279,7 +278,11 @@ export default function GuidancePage() {
   try {
     // Validation
     if (!form.guidance_date || !form.school_id || !form.counselor_id) {
-      alert('กรุณากรอกข้อมูลที่จำเป็น: วันที่, โรงเรียน, และอาจารย์แนะแนว');
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        text: 'กรุณากรอกข้อมูลที่จำเป็น: วันที่, โรงเรียน, และอาจารย์แนะแนว',
+      });
       return;
     }
 
@@ -344,50 +347,66 @@ export default function GuidancePage() {
     setForm(emptyGuidance);
     setEditingId(null);
     setShowForm(false);
-    setShowDetailPopup(false);
     
-    alert(editingId ? 'อัปเดตข้อมูลสำเร็จ!' : 'บันทึกข้อมูลสำเร็จ!');
+    Swal.fire({
+      icon: 'success',
+      title: 'สำเร็จ!',
+      text: editingId ? 'อัปเดตข้อมูลสำเร็จ!' : 'บันทึกข้อมูลสำเร็จ!',
+      timer: 1500,
+      showConfirmButton: false,
+    });
     
   } catch (err: any) {
     console.error('Submit error:', err);
-    alert(`เกิดข้อผิดพลาด: ${err.message}`);
+    Swal.fire({
+      icon: 'error',
+      title: 'เกิดข้อผิดพลาด',
+      text: err.message,
+    });
   }
 };
 
   const handleEdit = (item: Guidance) => {
     setForm(item);
     setEditingId(item.GuidanceID);
-    setSelectedItem(null);
-    setShowDetailPopup(false);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
-  if (!confirm(`ลบกิจกรรมแนะแนวรหัส ${id} ?`)) return;
-  
-  try {
-    const res = await fetch(`/api/auth/guidance/${id}`, { 
-      method: 'DELETE' 
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบกิจกรรมแนะแนวรหัส ${id} ใช่หรือไม่?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/auth/guidance/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
+          }
+          await fetchGuidance();
+          Swal.fire(
+            'ลบแล้ว!',
+            'ข้อมูลกิจกรรมถูกลบเรียบร้อยแล้ว',
+            'success'
+          );
+        } catch (error: any) {
+          console.error('Delete error:', error);
+          Swal.fire(
+            'เกิดข้อผิดพลาด!',
+            error.message || 'เกิดข้อผิดพลาดในการลบข้อมูล',
+            'error'
+          );
+        }
+      }
     });
-    
-    const result = await res.json();
-    
-    if (!res.ok) {
-      throw new Error(result.message || `HTTP error! status: ${res.status}`);
-    }
-    
-    if (!result.success) {
-      throw new Error(result.message || 'ลบไม่สำเร็จ');
-    }
-    
-    await fetchGuidance();
-    setShowDetailPopup(false);
-    alert('ลบข้อมูลสำเร็จ!');
-    
-  } catch (err: any) {
-    console.error('Delete error:', err);
-    alert(`เกิดข้อผิดพลาดในการลบ: ${err.message}`);
-  }
 };
 
   const displayStatus = (status: string) => {
@@ -421,14 +440,54 @@ export default function GuidancePage() {
     }
   };
 
-  const openDetailPopup = (item: Guidance) => {
-    setSelectedItem(item);
-    setShowDetailPopup(true);
-  };
+  const showDetails = (item: Guidance) => {
+    const teacher = teachers.find(t => t.Username === item.counselor_id);
+    const counselorName = teacher ? `${teacher.F_name} ${teacher.L_name}` : item.counselor_id;
 
-  const closeDetailPopup = () => {
-    setShowDetailPopup(false);
-    setSelectedItem(null);
+    const detailsHtml = `
+      <div class="text-left p-4 space-y-4">
+        <div class="bg-blue-50 p-3 rounded-lg">
+          <label class="text-blue-700 font-medium text-sm">วันที่จัดกิจกรรม</label>
+          <p class="text-blue-900 font-mono">${new Date(item.guidance_date).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg">
+          <label class="text-green-700 font-medium text-sm">โรงเรียน</label>
+          <p class="text-green-900">${item.Sc_name || '(ไม่พบชื่อโรงเรียน)'}</p>
+        </div>
+        <div class="bg-yellow-50 p-3 rounded-lg">
+          <label class="text-yellow-700 font-medium text-sm">จำนวนนักเรียน</label>
+          <p class="text-yellow-900">👥 ${item.student_count || 0} คน</p>
+        </div>
+        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">📋 ข้อมูลเพิ่มเติม</h4>
+        <p><b>แผนการเรียน:</b> ${item.study_plan || '-'}</p>
+        <p><b>คณะที่รับผิดชอบ:</b> ${item.faculty_in_charge || '-'}</p>
+        <p><b>อาจารย์แนะแนว:</b> ${counselorName}</p>
+        <p><b>ครูผู้รับผิดชอบ (รร.):</b> ${item.professor_in_charge || '-'}</p>
+        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">🚐 ข้อมูลยานพาหนะ</h4>
+        <p><b>ประเภท:</b> ${item.car_type || '-'}</p>
+        <p><b>ทะเบียน:</b> ${item.car_registration || '-'}</p>
+        <p><b>ที่นั่ง:</b> ${item.number_seats || '-'}</p>
+        <p><b>เบอร์โทร:</b> ${item.car_phone || '-'}</p>
+      </div>
+    `;
+
+    Swal.fire({
+      title: `<strong>รายละเอียด: ${item.Sc_name}</strong>`,
+      html: detailsHtml,
+      showCloseButton: true,
+      showCancelButton: true,
+      focusConfirm: false,
+      confirmButtonText: '✏️ แก้ไข',
+      cancelButtonText: '🗑️ ลบ',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleEdit(item);
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        handleDelete(item.GuidanceID);
+      }
+    });
   };
 
   const filteredGuidance = useMemo(() => {
@@ -833,7 +892,7 @@ export default function GuidancePage() {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <button
-                            onClick={() => openDetailPopup(item)}
+                            onClick={() => showDetails(item)}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium transition-colors"
                           >
                             👁️ ดูรายละเอียด
@@ -864,162 +923,6 @@ export default function GuidancePage() {
           </div>
         )}
 
-        {/* Detail Popup Modal */}
-        {showDetailPopup && selectedItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="bg-blue-500 text-white p-4 rounded-t-lg">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">📋 รายละเอียดกิจกรรมแนะแนว</h2>
-                  <button
-                    onClick={closeDetailPopup}
-                    className="text-white hover:bg-blue-600 rounded-full p-2"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {/* Basic Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">📋 ข้อมูลพื้นฐาน</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 p-3 rounded">
-                      <label className="text-blue-700 font-medium text-sm">วันที่จัดกิจกรรม</label>
-                      <p className="text-gray-800 font-medium">
-                        {new Date(selectedItem.guidance_date).toLocaleDateString('th-TH', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
-
-                    <div className="bg-green-50 p-3 rounded">
-                      <label className="text-green-700 font-medium text-sm">โรงเรียน</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Sc_name || '(ไม่พบชื่อโรงเรียน)'}</p>
-                    </div>
-
-                    <div className="bg-yellow-50 p-3 rounded">
-                      <label className="text-yellow-700 font-medium text-sm">จำนวนนักเรียน</label>
-                      <p className="text-gray-800 font-medium">👥 {selectedItem.student_count} คน</p>
-                    </div>
-
-                    <div className="bg-red-50 p-3 rounded">
-                      <label className="text-red-700 font-medium text-sm">แผนการเรียน</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.study_plan || '-'}</p>
-                    </div>
-
-                    <div className="bg-pink-50 p-3 rounded">
-                      <label className="text-pink-700 font-medium text-sm">หมวดหมู่</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.Category}</p>
-                    </div>
-
-                    <div className="bg-cyan-50 p-3 rounded">
-                      <label className="text-cyan-700 font-medium text-sm">สถานะ</label>
-                      <p className="mt-1">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedItem.status)}`}>
-                          {displayStatus(selectedItem.status)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Personnel Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">👥 ข้อมูลบุคลากร</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-purple-50 p-3 rounded">
-                      <label className="text-purple-700 font-medium text-sm">อาจารย์แนะแนว</label>
-                      <p className="text-gray-800 font-medium">
-                        {(() => {
-                          const teacher = teachers.find(t => t.Username === selectedItem.counselor_id);
-                          return teacher ? `${teacher.F_name} ${teacher.L_name}` : selectedItem.counselor_id;
-                        })()}
-                      </p>
-                    </div>
-
-                    <div className="bg-indigo-50 p-3 rounded">
-                      <label className="text-indigo-700 font-medium text-sm">คณะที่รับผิดชอบ</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.faculty_in_charge || '-'}</p>
-                    </div>
-
-                    <div className="bg-teal-50 p-3 rounded md:col-span-2">
-                      <label className="text-teal-700 font-medium text-sm">ครูผู้รับผิดชอบ</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.professor_in_charge || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Schedule Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">⏰ เวลาและกำหนดการ</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-orange-50 p-3 rounded">
-                      <label className="text-orange-700 font-medium text-sm">เวลาที่จะไป</label>
-                      <p className="text-gray-800 font-medium">🕐 {toTimeOnly(selectedItem.Start_Time) || '--:--'}</p>
-                    </div>
-
-                    <div className="bg-lime-50 p-3 rounded">
-                      <label className="text-lime-700 font-medium text-sm">เวลาสิ้นสุดกิจกรรม</label>
-                      <p className="text-gray-800 font-medium">🕑 {toTimeOnly(selectedItem.Start_Stop) || '--:--'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vehicle Information */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-blue-700 mb-3 border-b pb-2">🚐 ข้อมูลยานพาหนะ</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-gray-50 p-3 rounded">
-                      <label className="text-gray-700 font-medium text-sm">ทะเบียนรถ</label>
-                      <p className="text-gray-800 font-medium text-lg">🚗 {selectedItem.car_registration || '-'}</p>
-                    </div>
-
-                    <div className="bg-blue-50 p-3 rounded">
-                      <label className="text-blue-700 font-medium text-sm">ประเภทรถ</label>
-                      <p className="text-gray-800 font-medium">{selectedItem.car_type || '-'}</p>
-                    </div>
-
-                    <div className="bg-green-50 p-3 rounded">
-                      <label className="text-green-700 font-medium text-sm">จำนวนที่นั่ง</label>
-                      <p className="text-gray-800 font-medium">🪑 {selectedItem.number_seats || '13'} ที่นั่ง</p>
-                    </div>
-
-                    <div className="bg-yellow-50 p-3 rounded">
-                      <label className="text-yellow-700 font-medium text-sm">เบอร์โทรรถ</label>
-                      <p className="text-gray-800 font-medium">📞 {selectedItem.car_phone || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end pt-4 border-t">
-                  <button
-                    onClick={() => handleEdit(selectedItem)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    ✏️ แก้ไข
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedItem.GuidanceID)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    🗑️ ลบ
-                  </button>
-                  <button
-                    onClick={closeDetailPopup}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    ❌ ปิด
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

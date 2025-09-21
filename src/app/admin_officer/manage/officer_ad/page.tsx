@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo, ChangeEvent } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
+import bcrypt from 'bcryptjs';
 
 // Define the type for an Officer for better type safety and autocompletion.
 type Officer = {
@@ -28,7 +30,6 @@ export default function OfficerAdminPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [form, setForm] = useState<Officer>(emptyOfficer);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
 
@@ -40,7 +41,6 @@ export default function OfficerAdminPage() {
   // Fetch officers data
   const fetchOfficers = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch('/api/officer');
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -48,7 +48,7 @@ export default function OfficerAdminPage() {
       setOfficers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error('Error fetching officer:', err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถโหลดข้อมูลเจ้าหน้าที่ได้', 'error');
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function OfficerAdminPage() {
     fetchOfficers();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -67,7 +67,6 @@ export default function OfficerAdminPage() {
     setForm(emptyOfficer);
     setEditingId(null);
     setShowForm(false);
-    setError(null);
   };
 
   const handleSubmit = async () => {
@@ -81,7 +80,11 @@ export default function OfficerAdminPage() {
     if (form.Off_Phone && !/^[0-9-+() ]+$/.test(form.Off_Phone)) validationErrors.push('รูปแบบเบอร์โทรไม่ถูกต้อง');
 
     if (validationErrors.length > 0) {
-      setError('กรุณาแก้ไขข้อมูลให้ถูกต้อง:\n' + validationErrors.join('\n'));
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ถูกต้อง',
+        html: validationErrors.join('<br />'),
+      });
       return;
     }
 
@@ -89,10 +92,15 @@ export default function OfficerAdminPage() {
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `/api/officer/${editingId}` : '/api/officer';
 
-      let payload: Partial<Officer> = { ...form };
-      // If editing and password is not changed, don't send it
-      if (editingId && !form.Off_Password?.trim()) {
-        delete payload.Off_Password;
+      const payload = { ...form };
+
+      if (payload.Off_Password && payload.Off_Password.trim() !== '') {
+        const salt = await bcrypt.genSalt(10);
+        payload.Off_Password = await bcrypt.hash(payload.Off_Password, salt);
+      } else {
+        if (editingId) {
+          delete (payload as Partial<Officer>).Off_Password;
+        }
       }
 
       const res = await fetch(url, {
@@ -108,27 +116,49 @@ export default function OfficerAdminPage() {
 
       await fetchOfficers();
       resetForm();
-      setError(null);
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: editingId ? 'อัปเดตข้อมูลสำเร็จ!' : 'เพิ่มข้อมูลสำเร็จ!',
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (err: any) {
       console.error('Submit error:', err);
-      setError(err.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: err.message,
+      });
     }
   };
 
   const handleDelete = async (username: string) => {
-    if (!confirm(`ยืนยันการลบเจ้าหน้าที่ ${username}?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
-    try {
-      const res = await fetch(`/api/officer/${username}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบเจ้าหน้าที่ "${username}"? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/officer/${username}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+          }
+          await fetchOfficers();
+          Swal.fire('ลบแล้ว!', `เจ้าหน้าที่ "${username}" ถูกลบเรียบร้อยแล้ว`, 'success');
+        } catch (error: any) {
+          console.error('Delete error:', error);
+          Swal.fire('เกิดข้อผิดพลาด!', error.message, 'error');
+        }
       }
-      await fetchOfficers();
-      setError(null);
-    } catch (err: any) {
-      console.error('Delete error:', err);
-      setError(err.message);
-    }
+    });
   };
 
   const uniquePositions = useMemo(() => {
@@ -136,7 +166,7 @@ export default function OfficerAdminPage() {
   }, [officers]);
 
   const filteredAndSortedOfficers = useMemo(() => {
-    return officers
+    let filtered = officers
       .filter(officer => {
         const searchTermLower = searchTerm.toLowerCase();
         const matchesSearch = !searchTerm ||
@@ -150,7 +180,8 @@ export default function OfficerAdminPage() {
 
         return matchesSearch && matchesPosition;
       })
-      .sort((a, b) => {
+    
+    return filtered.sort((a, b) => {
         switch (sortBy) {
           case 'name':
             return `${a.Off_Fname} ${a.Off_Lname}`.localeCompare(`${b.Off_Fname} ${b.Off_Lname}`);
@@ -163,6 +194,13 @@ export default function OfficerAdminPage() {
         }
       });
   }, [officers, searchTerm, positionFilter, sortBy]);
+
+  const handleEdit = (officer: Officer) => {
+    setForm({ ...officer, Off_Password: '' }); // Don't show password when editing
+    setEditingId(officer.Username);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -221,18 +259,6 @@ export default function OfficerAdminPage() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-md">
-            <div className="flex items-center">
-              <div className="text-red-500 text-xl mr-3">❌</div>
-              <div>
-                <p className="text-red-700 font-medium">เกิดข้อผิดพลาด</p>
-                <pre className="text-red-600 text-sm whitespace-pre-wrap">{error}</pre>
-              </div>
-            </div>
-          </div>
-        )}
-
         {loading ? (
           <div className="bg-white p-12 rounded-xl shadow-lg text-center">
             <div className="animate-spin text-6xl mb-4">⏳</div>
@@ -268,7 +294,7 @@ export default function OfficerAdminPage() {
                       <td className="py-3 px-4 text-gray-700">{officer.Off_Phone || <span className="text-gray-400 text-xs">-</span>}</td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex gap-2 justify-center">
-                          <button onClick={() => { setForm({ ...officer, Off_Password: '' }); setEditingId(officer.Username); setShowForm(true); setError(null); }} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105" aria-label={`แก้ไข ${officer.Username}`}>✏️ แก้ไข</button>
+                          <button onClick={() => handleEdit(officer)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105" aria-label={`แก้ไข ${officer.Username}`}>✏️ แก้ไข</button>
                           <button onClick={() => handleDelete(officer.Username)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105" aria-label={`ลบ ${officer.Username}`}>🗑️ ลบ</button>
                         </div>
                       </td>

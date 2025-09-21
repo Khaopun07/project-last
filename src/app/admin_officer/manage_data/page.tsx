@@ -32,7 +32,6 @@ const menus = [
     label: 'จัดการข้อมูลเจ้าหน้าที่', 
     path: '/admin_officer/manage/officer_ad?embedded=true&hideHeader=true&hideFooter=true&contentOnly=true',
     icon: '🧑‍💼',
-    description: 'จัดการข้อมูลเจ้าหน้าที่ระบบ'
   },
 ];
 
@@ -88,11 +87,6 @@ export default function ManageDashboard() {
                   }`}>
                     {menu.label}
                   </h3>
-                  <p className={`text-xs leading-relaxed ${
-                    selected === menu.path ? 'text-blue-100' : 'text-gray-500 group-hover:text-blue-600'
-                  }`}>
-                    {menu.description}
-                  </p>
                 </div>
                 <div className={`flex-shrink-0 transition-transform duration-300 ${
                   selected === menu.path ? 'rotate-90' : 'group-hover:translate-x-1'
@@ -131,29 +125,6 @@ export default function ManageDashboard() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col bg-white/50 backdrop-blur-sm">
-        
-        <div className="bg-white/80 backdrop-blur-sm border-b border-blue-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-xl">{selectedMenu?.icon}</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {selectedMenu?.label || 'ไม่พบข้อมูล'}
-                </h1>
-                <p className="text-sm text-gray-600">{selectedMenu?.description}</p>
-              </div>
-            </div>
-            
-            {/* Status indicator */}
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">พร้อมใช้งาน</span>
-            </div>
-          </div>
-        </div>
-
         {/* Content Frame */}
         <div className="flex-1 p-6">
           {selected ? (

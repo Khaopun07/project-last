@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         username,
         fname = '',
         lname = '',
-        position = '',
+        Off_Position = '',
         email,
         phone = '',
         password,
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       username = username?.trim();
       fname = fname.trim();
       lname = lname.trim();
-      position = position.trim();
+      Off_Position = Off_Position.trim();
       email = email?.trim().toLowerCase();
       phone = phone.trim();
       password = password?.trim();
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO officer_table 
          (Username, Off_Fname, Off_Lname, Off_Position, Off_Email, Off_Phone, Off_Password) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [username, fname, lname, position, email, phone, hashed]
+        [username, fname, lname, Off_Position, email, phone, hashed]
       );
 
       console.log('Officer Insert Result:', result);
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         prefix = '',
         fname = '',
         lname = '',
-        faclty = '',
+        Faclty = '',
         phone = '',
         email,
         password,
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       prefix = prefix.trim();
       fname = fname.trim();
       lname = lname.trim();
-      faclty = faclty.trim();
+      Faclty = Faclty.trim();
       phone = phone.trim();
       email = email?.trim().toLowerCase();
       password = password?.trim();
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO teacher_table 
          (Username, Prefix, F_name, L_name, Faclty, Phone, Email, Password) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [username, prefix, fname, lname, faclty, phone, email, hashed]
+        [username, prefix, fname, lname, Faclty, phone, email, hashed]
       );
 
       console.log('Teacher Insert Result:', result);

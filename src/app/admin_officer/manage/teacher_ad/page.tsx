@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import Swal from 'sweetalert2';
+import bcrypt from 'bcryptjs';
 
 type Teacher = {
   Username: string;
@@ -23,11 +25,25 @@ const emptyTeacher: Teacher = {
   Password: '',
 };
 
+const faculties = [
+  'คณะวิทยาศาสตร์และนวัตกรรมดิจิทัล',
+  'คณะวิทยาการสุขภาพและการกีฬา',
+  'คณะเทคโนโลยีและการพัฒนาชุมชน',
+  'คณะวิศวกรรมศาสตร์',
+  'คณะพยาบาลศาสตร์',
+  'คณะนิติศาสตร์',
+  'คณะอุตสาหกรรมเกษตรและชีวภาพ',
+  'คณะศึกษาศาสตร์',
+  'คณะสหวิทยาการและการประกอบการ',
+  'คณะสหเวชศาสตร์',
+  'วิทยาลัยการจัดการเพื่อการพัฒนา',
+  'โครงการจัดตั้งคณะแพทยศาสตร์'
+];
+
 export default function TeacherPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [form, setForm] = useState<Teacher>(emptyTeacher);
   const [editingUsername, setEditingUsername] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +52,6 @@ export default function TeacherPage() {
 
   const fetchTeachers = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch('/api/teacher');
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -44,7 +59,7 @@ export default function TeacherPage() {
       setTeachers(data);
     } catch (err: any) {
       console.error('Error fetching teacher:', err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถโหลดข้อมูลอาจารย์ได้', 'error');
     } finally {
       setLoading(false);
     }
@@ -77,7 +92,11 @@ export default function TeacherPage() {
   const handleSubmit = async () => {
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
-      setError('กรุณาแก้ไขข้อมูลให้ถูกต้อง:\n' + validationErrors.join('\n'));
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ถูกต้อง',
+        html: validationErrors.join('<br />'),
+      });
       return;
     }
 
@@ -87,18 +106,26 @@ export default function TeacherPage() {
         ? `/api/teacher/${editingUsername}`
         : '/api/teacher';
 
-      let submitData;
-      if (editingUsername && !form.Password?.trim()) {
-        const { Password, ...dataWithoutPassword } = form;
-        submitData = dataWithoutPassword;
+      // สร้างสำเนาของข้อมูลฟอร์มเพื่อป้องกันการแก้ไข state โดยตรง
+      const payload = { ...form };
+
+      // ตรวจสอบว่ามีการกรอกรหัสผ่านใหม่หรือไม่
+      if (payload.Password && payload.Password.trim() !== '') {
+        // เข้ารหัสรหัสผ่านใหม่
+        const salt = await bcrypt.genSalt(10);
+        payload.Password = await bcrypt.hash(payload.Password, salt);
       } else {
-        submitData = { ...form };
+        // ถ้ากำลังแก้ไขและไม่ได้กรอกรหัสผ่านใหม่ ให้ลบฟิลด์รหัสผ่านออกจากข้อมูลที่จะส่ง
+        // เพื่อป้องกันการเขียนทับรหัสผ่านเดิมด้วยค่าว่าง
+        if (editingUsername) {
+          delete (payload as Partial<Teacher>).Password;
+        }
       }
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -108,10 +135,20 @@ export default function TeacherPage() {
 
       await fetchTeachers();
       resetForm();
-      setError(null);
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: editingUsername ? 'อัปเดตข้อมูลสำเร็จ!' : 'เพิ่มข้อมูลสำเร็จ!',
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (error: any) {
       console.error('Submit error:', error);
-      setError(error.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message,
+      });
     }
   };
 
@@ -119,35 +156,50 @@ export default function TeacherPage() {
     setForm({ ...teacher, Password: '' }); // Don't show password when editing
     setEditingUsername(teacher.Username);
     setShowForm(true);
-    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (username: string) => {
-    if (!confirm(`ยืนยันการลบอาจารย์ ${username}?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
-    
-    try {
-      const res = await fetch(`/api/teacher/${username}`, {
-        method: 'DELETE',
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+    Swal.fire({
+      title: 'คุณแน่ใจหรือไม่?',
+      text: `คุณต้องการลบอาจารย์ "${username}"? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'ใช่, ลบเลย!',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/teacher/${username}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${res.status}: การลบไม่สำเร็จ`);
+          }
+          await fetchTeachers();
+          Swal.fire(
+            'ลบแล้ว!',
+            `อาจารย์ "${username}" ถูกลบเรียบร้อยแล้ว`,
+            'success'
+          );
+        } catch (error: any) {
+          console.error('Delete error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'ไม่สามารถลบข้อมูลได้',
+            text: error.message,
+            footer: 'อาจเป็นเพราะอาจารย์ท่านนี้ยังมีข้อมูลอยู่ที่ระบบการจอง'
+          });
+        }
       }
-      
-      await fetchTeachers();
-      setError(null);
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      setError(error.message);
-    }
+    });
   };
 
   const resetForm = () => {
     setForm(emptyTeacher);
     setEditingUsername(null);
     setShowForm(false);
-    setError(null);
   };
 
   // Get unique positions for filter (using Prefix)
@@ -332,13 +384,19 @@ export default function TeacherPage() {
 
                 <div>
                   <label className="block text-blue-700 font-medium mb-2">คณะ</label>
-                  <input
+                  <select
                     name="Faclty"
-                    placeholder="คณะ"
                     value={form.Faclty}
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
+                  >
+                    <option value="">-- เลือกคณะ --</option>
+                    {faculties.map((faculty) => (
+                      <option key={faculty} value={faculty}>
+                        {faculty}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -380,19 +438,6 @@ export default function TeacherPage() {
                     ❌ ยกเลิก
                   </button>
                 )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-md">
-            <div className="flex items-center">
-              <div className="text-red-500 text-xl mr-3">❌</div>
-              <div>
-                <p className="text-red-700 font-medium">เกิดข้อผิดพลาด</p>
-                <pre className="text-red-600 text-sm whitespace-pre-wrap">{error}</pre>
               </div>
             </div>
           </div>
