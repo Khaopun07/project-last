@@ -73,10 +73,6 @@ export default function ActivityHistoryPage() {
   // Error states
   const [error, setError] = useState<string | null>(null);
   
-  // Modal states for editing
-  const [showBookingEditForm, setShowBookingEditForm] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-
   // Loading state for initial authentication check
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -408,9 +404,6 @@ export default function ActivityHistoryPage() {
         icon: 'success',
         timer: 1500,
         showConfirmButton: false
-      }).then(() => {
-        setShowBookingEditForm(false);
-        setEditingBooking(null);
       });
       fetchHistory();
     } catch (err: any) {
@@ -420,9 +413,80 @@ export default function ActivityHistoryPage() {
         `เกิดข้อผิดพลาดในการอัปเดตการจอง: ${err.message}`,
         'error'
       );
-      setShowBookingEditForm(false);
-      setEditingBooking(null);
     }
+  };
+
+  const handleEditBookingClick = (booking: Booking) => {
+    const schoolInfo = getSchoolInfo(booking.GuidanceID);
+    const schoolName = schoolInfo ? schoolInfo.schoolName : 'ข้อมูลการจอง';
+
+    const pickupPoints = [
+      'หน้าคณะวิทยาศาสตร์',
+      'หน้าหอพักอาจารย์',
+      'หน้ามหาวิทยาลัยทักษิณ',
+    ];
+    const pickupOptions = pickupPoints.map(point => 
+      `<option value="${point}" ${booking.T_PickupPoint === point ? 'selected' : ''}>${point}</option>`
+    ).join('');
+
+    Swal.fire({
+      title: `<span class="flex items-center justify-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                แก้ไขการจอง: ${schoolName}
+              </span>`,
+      html: `
+        <div class="space-y-4 text-left p-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">จุดรับส่ง</label>
+            <select id="swal-pickup" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300">
+              <option value="">-- เลือกจุดรับส่ง --</option>
+              ${pickupOptions}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 1 (ชื่อ)</label>
+            <input id="swal-std1-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_name1 || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 1 (รหัส)</label>
+            <input id="swal-std1-id" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_ID1 || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 2 (ชื่อ)</label>
+            <input id="swal-std2-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_name2 || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 2 (รหัส)</label>
+            <input id="swal-std2-id" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_ID2 || ''}">
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึกการแก้ไข',
+      cancelButtonText: 'ยกเลิก',
+      customClass: {
+        popup: 'rounded-2xl shadow-xl border border-gray-100',
+        title: 'text-2xl font-bold text-gray-800 pt-6',
+        confirmButton: 'px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300',
+        cancelButton: 'px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-sm hover:bg-gray-300 transition-all duration-300'
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        return {
+          ...booking,
+          T_PickupPoint: (document.getElementById('swal-pickup') as HTMLSelectElement).value,
+          Std_name1: (document.getElementById('swal-std1-name') as HTMLInputElement).value,
+          Std_ID1: (document.getElementById('swal-std1-id') as HTMLInputElement).value,
+          Std_name2: (document.getElementById('swal-std2-name') as HTMLInputElement).value,
+          Std_ID2: (document.getElementById('swal-std2-id') as HTMLInputElement).value,
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleUpdateBooking(result.value);
+      }
+    });
   };
 
   const handleUpdateSchool = async (updatedSchool: ProposedSchool) => {
@@ -545,12 +609,6 @@ export default function ActivityHistoryPage() {
         }
       }
     });
-  };
-
-  const handleEditBookingClick = (booking: Booking) => {
-    setEditingBooking(booking);
-    setShowBookingEditForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Helper functions
@@ -721,17 +779,6 @@ export default function ActivityHistoryPage() {
           </p>
         </div>
 
-        {/* Edit Booking Form */}
-        {showBookingEditForm && editingBooking && (
-          <BookingEditForm
-            booking={editingBooking}
-            onSave={handleUpdateBooking}
-            onCancel={() => {
-              setShowBookingEditForm(false);
-              setEditingBooking(null);
-            }}
-          />
-        )}
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 mb-8">
@@ -1321,64 +1368,6 @@ export default function ActivityHistoryPage() {
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-function BookingEditForm({ booking, onSave, onCancel }: { booking: Booking, onSave: (data: Booking) => void, onCancel: () => void }) {
-  const [formData, setFormData] = useState(booking);
-
-  useEffect(() => {
-    setFormData(booking);
-  }, [booking]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  const pickupPoints = [
-    'หน้าคณะวิทยาศาสตร์',
-    'หน้าหอพักอาจารย์',
-    'หน้ามหาวิทยาลัยทักษิณ',
-  ];
-
-  return (
-    <div className="bg-white p-6 border rounded-lg shadow-md mb-6 border-l-4 border-blue-400">
-      <h2 className="text-lg font-semibold text-blue-800 mb-4">✏️ แก้ไขการจอง</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">จุดรับส่ง</label>
-          <select name="T_PickupPoint" value={formData.T_PickupPoint || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-            <option value="">-- เลือกจุดรับส่ง --</option>
-            {pickupPoints.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (ชื่อ)</label>
-          <input type="text" name="Std_name1" value={formData.Std_name1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 1 (รหัส)</label>
-          <input type="text" name="Std_ID1" value={formData.Std_ID1 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (ชื่อ)</label>
-          <input type="text" name="Std_name2" value={formData.Std_name2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">นักเรียนคนที่ 2 (รหัส)</label>
-          <input type="text" name="Std_ID2" value={formData.Std_ID2 || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-        </div>
-        <div className="flex gap-2 justify-end pt-4 border-t">
-          <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">ยกเลิก</button>
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md">บันทึกการแก้ไข</button>
-        </div>
-      </form>
     </div>
   );
 }

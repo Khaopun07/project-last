@@ -53,7 +53,6 @@ export default function BookingFormPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loggedInUser, setLoggedInUser] = useState<LoggedInUser | null>(null);
   const [form, setForm] = useState<Omit<Booking, 'Book_ID'>>(emptyBooking);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
@@ -103,7 +102,11 @@ export default function BookingFormPage() {
       const role = localStorage.getItem('role');
 
       if (!token || !userJson) {
-        setError('ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่');
+        Swal.fire({
+          icon: 'error',
+          title: 'ข้อผิดพลาด',
+          text: 'ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่',
+        });
         return;
       }
 
@@ -111,12 +114,16 @@ export default function BookingFormPage() {
       try {
         user = JSON.parse(userJson);
       } catch {
-        setError('ข้อมูลผู้ใช้ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่');
+        Swal.fire({
+          icon: 'error',
+          title: 'ข้อผิดพลาด',
+          text: 'ข้อมูลผู้ใช้ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่',
+        });
         return;
       }
 
       if (role !== 'teacher') {
-        setError('เฉพาะอาจารย์เท่านั้นที่สามารถเข้าถึงหน้านี้ได้');
+        Swal.fire('เข้าถึงไม่ได้', 'เฉพาะอาจารย์เท่านั้นที่สามารถเข้าถึงหน้านี้ได้', 'error');
         return;
       }
 
@@ -135,7 +142,11 @@ export default function BookingFormPage() {
       
     } catch (error: any) {
       console.error('Error loading data:', error);
-      setError('เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง');
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง',
+      });
     } finally {
       setAuthLoading(false);
     }
@@ -208,16 +219,18 @@ export default function BookingFormPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    if (error) setError(null);
   };
 
   const handleSubmit = () => {
     setLoading(true);
-    setError(null);
 
     // Validation
     if (!form.GuidanceID) {
-      setError('กรุณาเลือกโรงเรียน');
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        text: 'กรุณาเลือกโรงเรียน',
+      });
       setLoading(false);
       return;
     }
@@ -225,21 +238,12 @@ export default function BookingFormPage() {
     if (!form.T_PickupPoint) {
       Swal.fire({
         icon: "error",
-        title: "ข้อผิดพลาด",
-        text: "กรุณาเลือกจุดรับส่งก่อนทำการบันทึก",
-        footer: 'หากไม่มีจุดรับส่ง กรุณาติดต่อเจ้าหน้าที่'
+        title: "เกิดข้อผิดพลาด",
+        text: "กรุณาเลือกจุดรับส่ง",
+        footer: 'หากไม่มีจุดรับส่ง กรุณาติดต่อเจ้าหน้าที่',
       });
       setLoading(false);
       return;
-    }
-
-    if (loggedInUser?.role === 'teacher') {
-      const loggedInTeacher = teachers.find(t => t.Email === loggedInUser.email);
-      if (loggedInTeacher && loggedInTeacher.Username !== form.Username) {
-        setError('คุณสามารถจองเฉพาะในนามของตัวเองเท่านั้น');
-        setLoading(false);
-        return;
-      }
     }
 
     const getTeacherID = () => {
@@ -260,11 +264,6 @@ export default function BookingFormPage() {
       foundTeacher: teachers.find(t => t.Email === loggedInUser?.email)
     });
 
-    if (!teacherID) {
-      setError('ไม่พบข้อมูล Teacher ID กรุณาล็อกอินใหม่');
-      setLoading(false);
-      return;
-    }
 
     setTimeout(async () => {
       try {
@@ -292,7 +291,16 @@ export default function BookingFormPage() {
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || `Error: ${res.statusText}`);
+          if (res.status === 409 && errorData.message === 'คุณได้ทำการจองกิจกรรมนี้แล้ว') {
+            Swal.fire({
+              icon: 'warning',
+              title: 'จองซ้ำ',
+              text: 'คุณได้ทำการจองกิจกรรมนี้แล้ว',
+            });
+          } else {
+            throw new Error(errorData.message || `Error: ${res.statusText}`);
+          }
+          return; // Stop execution if there was an error
         }
 
         const result = await res.json();
@@ -307,7 +315,11 @@ export default function BookingFormPage() {
           Username: form.Username,
         });
       } catch (error: any) {
-        setError(error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: error.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล',
+        });
       } finally {
         setLoading(false);
       }
@@ -325,27 +337,27 @@ export default function BookingFormPage() {
     );
   }
 
-  if (!loggedInUser && error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 className="text-xl font-bold text-red-800 mb-2">ไม่สามารถโหลดข้อมูลได้</h2>
-            <p className="text-red-700 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              ลองใหม่อีกครั้ง
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (!loggedInUser && error) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+  //       <div className="text-center max-w-md mx-auto">
+  //         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+  //           <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //           </svg>
+  //           <h2 className="text-xl font-bold text-red-800 mb-2">ไม่สามารถโหลดข้อมูลได้</h2>
+  //           <p className="text-red-700 mb-4">{error}</p>
+  //           <button
+  //             onClick={() => window.location.reload()}
+  //             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+  //           >
+  //             ลองใหม่อีกครั้ง
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Get selected school and teacher data for display - with safety checks
   const selectedSchool = Array.isArray(guidances) && guidances.length > 0 
@@ -373,18 +385,6 @@ export default function BookingFormPage() {
             กรอกข้อมูลเพื่อจองและลงทะเบียนกิจกรรมแนะแนว
           </p>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6 mb-8">
-            <div className="flex items-center">
-              <svg className="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-red-800 font-semibold">{error}</p>
-            </div>
-          </div>
-        )}
 
         {/* Main Form */}
         {loggedInUser?.role === 'teacher' && (

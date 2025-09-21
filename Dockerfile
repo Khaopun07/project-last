@@ -15,6 +15,10 @@ RUN npm ci
 # The .dockerignore file will prevent node_modules and .next from being copied
 COPY . .
 
+# Copy the public directory from src to the root for the build process to find it.
+# This is necessary because the project uses a non-standard `src/public` structure.
+RUN cp -r /app/src/public /app/public
+
 # Build Next.js in standalone mode
 RUN npm run build
 
