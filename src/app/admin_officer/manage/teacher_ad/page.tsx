@@ -184,7 +184,6 @@ export default function TeacherPage() {
             'success'
           );
         } catch (error: any) {
-          console.error('Delete error:', error);
           Swal.fire({
             icon: 'error',
             title: 'ไม่สามารถลบข้อมูลได้',
