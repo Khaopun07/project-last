@@ -187,8 +187,7 @@ export default function TeacherPage() {
           Swal.fire({
             icon: 'error',
             title: 'ไม่สามารถลบข้อมูลได้',
-            text: error.message,
-            footer: 'อาจเป็นเพราะอาจารย์ท่านนี้ยังมีข้อมูลอยู่ที่ระบบการจอง'
+            text: 'อาจเป็นเพราะอาจารย์ท่านนี้ยังมีข้อมูลอยู่ที่ระบบการจอง',
           });
         }
       }
@@ -283,27 +282,6 @@ export default function TeacherPage() {
                   className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
-              <select
-                value={positionFilter}
-                onChange={(e) => setPositionFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">คำนำหน้าทั้งหมด</option>
-                {uniquePositions.map(position => (
-                  <option key={position} value={position}>{position}</option>
-                ))}
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'position' | 'username')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="name">เรียงตามชื่อ</option>
-                <option value="position">เรียงตามคำนำหน้า</option>
-                <option value="username">เรียงตาม Username</option>
-              </select>
             </div>
           </div>
         </div>
@@ -318,7 +296,7 @@ export default function TeacherPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-blue-700 font-medium mb-2">Username *</label>
+                  <label className="block text-blue-700 font-medium mb-2">ชื่อผู้ใช้ *</label>
                   <input
                     name="Username"
                     placeholder="Username"
@@ -330,13 +308,13 @@ export default function TeacherPage() {
                     }`}
                   />
                   {editingUsername && (
-                    <p className="text-xs text-gray-500 mt-1">Username ไม่สามารถแก้ไขได้</p>
+                    <p className="text-xs text-gray-500 mt-1">รหัสผ่าน ไม่สามารถแก้ไขได้</p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-blue-700 font-medium mb-2">
-                    Password {!editingUsername && '*'}
+                    รหัสผ่าน {!editingUsername && '*'}
                   </label>
                   <input
                     name="Password"
@@ -399,7 +377,7 @@ export default function TeacherPage() {
                 </div>
 
                 <div>
-                  <label className="block text-blue-700 font-medium mb-2">Email</label>
+                  <label className="block text-blue-700 font-medium mb-2">อีเมล</label>
                   <input
                     name="Email"
                     placeholder="example@email.com"
@@ -465,11 +443,11 @@ export default function TeacherPage() {
               <table className="w-full text-sm">
                 <thead className="bg-blue-50">
                   <tr>
-                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">Username</th>
+                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">ชื่อผู้ใช้</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">คำนำหน้า</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">ชื่อ-นามสกุล</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">คณะ</th>
-                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">Email</th>
+                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">อีเมล</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">เบอร์โทร</th>
                     <th className="py-3 px-4 text-center text-blue-800 font-semibold">จัดการ</th>
                   </tr>

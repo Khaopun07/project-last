@@ -15,6 +15,22 @@ type Officer = {
   Off_Password?: string; // Password should be optional, especially for display
 };
 
+// Predefined list of faculties
+const facultyOptions = [
+  'คณะวิทยาศาสตร์และนวัตกรรมดิจิทัล',
+  'คณะวิทยาการสุขภาพและการกีฬา',
+  'คณะเทคโนโลยีและการพัฒนาชุมชน',
+  'คณะวิศวกรรมศาสตร์',
+  'คณะพยาบาลศาสตร์',
+  'คณะนิติศาสตร์',
+  'คณะอุตสาหกรรมเกษตรและชีวภาพ',
+  'คณะศึกษาศาสตร์',
+  'คณะสหวิทยาการและการประกอบการ',
+  'คณะสหเวชศาสตร์',
+  'วิทยาลัยการจัดการเพื่อการพัฒนา',
+  'โครงการจัดตั้งคณะแพทยศาสตร์',
+].sort(); // Sort alphabetically for better UX
+
 // Initial state for the form
 const emptyOfficer: Officer = {
   Username: '',
@@ -58,7 +74,7 @@ export default function OfficerAdminPage() {
     fetchOfficers();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -76,6 +92,7 @@ export default function OfficerAdminPage() {
     if (!editingId && !form.Off_Password?.trim()) validationErrors.push('กรุณากรอก Password');
     if (!form.Off_Fname.trim()) validationErrors.push('กรุณากรอกชื่อ');
     if (!form.Off_Lname.trim()) validationErrors.push('กรุณากรอกนามสกุล');
+    if (!form.Off_Position.trim()) validationErrors.push('กรุณาเลือกคณะ');
     if (form.Off_Email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.Off_Email)) validationErrors.push('รูปแบบ Email ไม่ถูกต้อง');
     if (form.Off_Phone && !/^[0-9-+() ]+$/.test(form.Off_Phone)) validationErrors.push('รูปแบบเบอร์โทรไม่ถูกต้อง');
 
@@ -161,10 +178,6 @@ export default function OfficerAdminPage() {
     });
   };
 
-  const uniquePositions = useMemo(() => {
-    return [...new Set(officers.map(o => o.Off_Position).filter(Boolean))].sort();
-  }, [officers]);
-
   const filteredAndSortedOfficers = useMemo(() => {
     let filtered = officers
       .filter(officer => {
@@ -224,16 +237,21 @@ export default function OfficerAdminPage() {
               {showForm ? '❌ ปิดฟอร์ม' : '➕ เพิ่มเจ้าหน้าที่ใหม่'}
             </button>
             <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative"><input type="text" placeholder="🔍 ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
-              <select value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">ตำแหน่งทั้งหมด</option>
-                {uniquePositions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
-              </select>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="name">เรียงตามชื่อ</option>
-                <option value="position">เรียงตามตำแหน่ง</option>
-                <option value="username">เรียงตาม Username</option>
-              </select>
+              <div className="relative">
+                <input type="text" placeholder="🔍 ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div className="relative">
+                <select
+                  value={positionFilter}
+                  onChange={(e) => setPositionFilter(e.target.value)}
+                  className="py-2 pl-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="">ทุกคณะ</option>
+                  {facultyOptions.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -243,12 +261,27 @@ export default function OfficerAdminPage() {
             <h2 className="text-xl font-semibold text-blue-800 mb-6">{editingId ? '✏️ แก้ไขข้อมูลเจ้าหน้าที่' : '➕ เพิ่มเจ้าหน้าที่ใหม่'}</h2>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div><label className="block text-blue-700 font-medium mb-2">Username *</label><input name="Username" placeholder="Username" value={form.Username} onChange={handleChange} disabled={!!editingId} className={`w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all ${editingId ? 'bg-gray-100 cursor-not-allowed' : ''}`} />{editingId && <p className="text-xs text-gray-500 mt-1">Username ไม่สามารถแก้ไขได้</p>}</div>
-                <div><label className="block text-blue-700 font-medium mb-2">Password {!editingId && '*'}</label><input name="Off_Password" type="password" placeholder={editingId ? 'เว้นว่างหากไม่ต้องการเปลี่ยน' : 'Password'} value={form.Off_Password} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
+                <div><label className="block text-blue-700 font-medium mb-2">ชื่อผู้ใช้ *</label><input name="Username" placeholder="Username" value={form.Username} onChange={handleChange} disabled={!!editingId} className={`w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all ${editingId ? 'bg-gray-100 cursor-not-allowed' : ''}`} />{editingId && <p className="text-xs text-gray-500 mt-1">Username ไม่สามารถแก้ไขได้</p>}</div>
+                <div><label className="block text-blue-700 font-medium mb-2">รหัสผ่าน * {!editingId && '*'}</label><input name="Off_Password" type="password" placeholder={editingId ? 'เว้นว่างหากไม่ต้องการเปลี่ยน' : 'Password'} value={form.Off_Password} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
                 <div><label className="block text-blue-700 font-medium mb-2">ชื่อ *</label><input name="Off_Fname" placeholder="ชื่อ" value={form.Off_Fname} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
                 <div><label className="block text-blue-700 font-medium mb-2">นามสกุล *</label><input name="Off_Lname" placeholder="นามสกุล" value={form.Off_Lname} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
-                <div><label className="block text-blue-700 font-medium mb-2">ตำแหน่ง</label><input name="Off_Position" placeholder="ตำแหน่ง" value={form.Off_Position} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
-                <div><label className="block text-blue-700 font-medium mb-2">Email</label><input name="Off_Email" placeholder="example@email.com" type="email" value={form.Off_Email} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
+                <div>
+                  <label className="block text-blue-700 font-medium mb-2">คณะ *</label>
+                  <select
+                    name="Off_Position"
+                    value={form.Off_Position}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white"
+                  >
+                    <option value="">-- กรุณาเลือกคณะ --</option>
+                    {facultyOptions.map((faculty) => (
+                      <option key={faculty} value={faculty}>
+                        {faculty}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div><label className="block text-blue-700 font-medium mb-2">อีเมล</label><input name="Off_Email" placeholder="example@email.com" type="email" value={form.Off_Email} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
                 <div><label className="block text-blue-700 font-medium mb-2">เบอร์โทร</label><input name="Off_Phone" placeholder="0xx-xxx-xxxx" value={form.Off_Phone} onChange={handleChange} className="w-full border border-gray-300 p-3 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" /></div>
               </div>
               <div className="flex gap-3 pt-3">
@@ -276,10 +309,10 @@ export default function OfficerAdminPage() {
               <table className="w-full text-sm">
                 <thead className="bg-blue-50">
                   <tr>
-                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">Username</th>
+                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">ชื่อผู้ใช้</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">ชื่อ-นามสกุล</th>
-                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">ตำแหน่ง</th>
-                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">Email</th>
+                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">คณะ</th>
+                    <th className="py-3 px-4 text-left text-blue-800 font-semibold">อีเมล</th>
                     <th className="py-3 px-4 text-left text-blue-800 font-semibold">เบอร์โทร</th>
                     <th className="py-3 px-4 text-center text-blue-800 font-semibold">จัดการ</th>
                   </tr>

@@ -325,16 +325,6 @@ export default function SchoolPage() {
                   <option key={province} value={province}>{province}</option>
                 ))}
               </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'province' | 'id')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="name">เรียงตามชื่อ</option>
-                <option value="province">เรียงตามจังหวัด</option>
-                <option value="id">เรียงตามรหัส</option>
-              </select>
             </div>
           </div>
         </div>

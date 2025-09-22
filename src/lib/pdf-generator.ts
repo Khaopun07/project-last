@@ -247,7 +247,7 @@ export class SimplePDFGenerator {
     
     // Activity summary box
     this.doc.setFillColor(...PDF_CONFIG.colors.light);
-    this.doc.rect(this.margin, this.currentY - 5, this.pageWidth - (2 * this.margin), 25, 'F');
+    this.doc.rect(this.margin, this.currentY - 4, this.pageWidth - (2 * this.margin), 20, 'F');
     
     this.currentY += 5;
     this.setFont(PDF_CONFIG.fonts.body);
@@ -331,7 +331,7 @@ export class SimplePDFGenerator {
       
       this.setFont(PDF_CONFIG.fonts.section, 'normal');
       this.doc.setTextColor(...PDF_CONFIG.colors.primary);
-      this.addLine('รายชื่ออาจารย์ผู้นำ');
+      this.addLine('รายชื่ออาจารย์ที่เข้าร่วม');
 
       const teacherRows = data.participants.teachers.map((teacher, index) => [
         (index + 1).toString(),

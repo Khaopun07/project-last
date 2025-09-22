@@ -241,7 +241,7 @@ export default function DashboardClient() {
 
         {/* Pie Chart for Schools by Province */}
         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-blue-100">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">10 อันดับจังหวัดที่มีโรงเรียน (ที่อนุมัติแล้ว)</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">กราฟจำนวนโรงเรียน (ที่อนุมัติแล้ว)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie

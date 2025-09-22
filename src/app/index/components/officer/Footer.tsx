@@ -37,19 +37,19 @@ export default function FooterOfficer() {
             </h4>
             <ul className="space-y-2">
               <li>
-                <a href="/officer/dashboard" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
+                <a href="/admin_officer/welcome/dashboard" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
                   <FiSettings className="w-4 h-4" />
                   แดชบอร์ด
                 </a>
               </li>
               <li>
-                <a href="/officer/guidance" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
+                <a href="/admin_officer/manage_data" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
                   <FiActivity className="w-4 h-4" />
                   จัดการกิจกรรม
                 </a>
               </li>
               <li>
-                <a href="/officer/reports" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
+                <a href="/admin_officer/guidance-report" className="flex items-center justify-center md:justify-start gap-2 text-gray-600 hover:text-blue-600 transition-colors duration-300 text-sm">
                   <FiSettings className="w-4 h-4" />
                   ออกรายงาน
                 </a>

@@ -444,19 +444,19 @@ export default function ActivityHistoryPage() {
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 1 (ชื่อ)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นิสิตคนที่ 1 (ชื่อ)</label>
             <input id="swal-std1-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_name1 || ''}">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 1 (รหัส)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นิสิตคนที่ 1 (รหัส)</label>
             <input id="swal-std1-id" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_ID1 || ''}">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 2 (ชื่อ)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นิสิตคนที่ 2 (ชื่อ)</label>
             <input id="swal-std2-name" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_name2 || ''}">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">นักเรียนคนที่ 2 (รหัส)</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">นิสิตคนที่ 2 (รหัส)</label>
             <input id="swal-std2-id" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all duration-300" value="${booking.Std_ID2 || ''}">
           </div>
         </div>
@@ -884,8 +884,8 @@ export default function ActivityHistoryPage() {
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">จุดรับส่ง</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">ข้อมูลรถ</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">เบอร์โทร</th>
-                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นักเรียนคนที่ 1</th>
-                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นักเรียนคนที่ 2</th>
+                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นิสิตคนที่ 1</th>
+                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นิสิตคนที่ 2</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">การดำเนินการ</th>
                       </tr>
                     </thead>
@@ -1020,8 +1020,8 @@ export default function ActivityHistoryPage() {
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">ข้อมูลรถ</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">จุดรับส่ง</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">เบอร์โทร</th>
-                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นักเรียนคนที่ 1</th>
-                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นักเรียนคนที่ 2</th>
+                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นิสิตคนที่ 1</th>
+                        <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">นิสิตคนที่ 2</th>
                         <th className="py-4 px-6 text-left font-semibold text-gray-800 border-b border-gray-200">การดำเนินการ</th>
                       </tr>
                     </thead>

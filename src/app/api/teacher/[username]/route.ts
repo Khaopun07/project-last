@@ -90,10 +90,22 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // ลบข้อมูลในตาราง book_table ก่อน
-    await pool.query('DELETE FROM book_table WHERE Username = ?', [username]);
+    // 1. ค้นหา TeacherID จาก Username
+    const [teacherRows]: any = await pool.query(
+      'SELECT TeacherID FROM teacher_table WHERE Username = ?',
+      [username]
+    );
 
-    // ลบข้อมูลใน teacher_table
+    if (teacherRows.length === 0) {
+      return NextResponse.json({ message: 'Teacher not found' }, { status: 404 });
+    }
+    const teacherId = teacherRows[0].TeacherID;
+
+    // 2. ลบข้อมูลการจองที่เกี่ยวข้องกับ TeacherID นี้ใน book_table
+    // การทำเช่นนี้ปลอดภัยกว่า แม้ว่าอาจารย์จะไม่มีการจองก็ตาม
+    await pool.query('DELETE FROM book_table WHERE TeacherID = ?', [teacherId]);
+
+    // 3. ลบข้อมูลใน teacher_table
     const [result]: any = await pool.query(
       'DELETE FROM teacher_table WHERE Username = ?',
       [username]

@@ -28,18 +28,18 @@ export default function OfficerHomePage() {
       action: () => router.push('/admin_officer/manage_data')
     },
     {
-      title: 'ตรวจสอบโรงเรียน',
-      description: 'อนุมัติหรือปฏิเสธโรงเรียนที่เสนอเข้าระบบ',
-      icon: 'school',
+      title: 'แดชบอร์ด',
+      description: 'ดูสถิติและรายงานกิจกรรมทั้งหมด',
+      icon: 'history',
       color: 'from-green-500 to-blue-500',
       action: () => router.push('/admin_officer/manage/schoolP_ad')
     },
     {
       title: 'รายงาน',
-      description: 'ดูสถิติและรายงานกิจกรรมทั้งหมด',
-      icon: 'history',
+      description: 'ออกรายงานกิจกรรมแนะแนว',
+      icon: 'calendar',
       color: 'from-orange-500 to-red-500',
-      action: () => router.push('/admin_officer/welcome/dashboard')
+      action: () => router.push('/admin_officer/guidance-report')
     }
   ];
 
