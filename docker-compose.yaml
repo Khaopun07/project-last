@@ -4,12 +4,56 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:${PORT}"
+      - "${APP_PORT:-3001}:3000" # Map host port from .env (default 3001) to container port 3000
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-    # Add host.docker.internal to extra_hosts to allow the container to connect to the host machine
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # Ensure the app waits for the database to be ready
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD} # Add a root password for security
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "${PMA_PORT:-8080}:80" # Access phpMyAdmin on port from .env (default 8080)
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

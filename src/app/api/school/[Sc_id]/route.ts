@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const [rows]: any = await pool.query(
-      'SELECT * FROM School_Table WHERE Sc_id = ?',
+      'SELECT * FROM school_table WHERE Sc_id = ?',
       [Sc_id]
     );
 
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
 
     // ตรวจสอบว่ามีโรงเรียนนี้อยู่จริงก่อน
     const [existingSchool]: any = await pool.query(
-      'SELECT Sc_id FROM School_Table WHERE Sc_id = ?',
+      'SELECT Sc_id FROM school_table WHERE Sc_id = ?',
       [Sc_id]
     );
 
@@ -107,7 +107,7 @@ export async function PUT(req: NextRequest) {
     paramsArray.push(Sc_id);
 
     const query = `
-      UPDATE School_Table SET
+      UPDATE school_table SET
         Sc_name = ?,
         Sc_address = ?,
         Sc_district = ?,
@@ -162,7 +162,7 @@ export async function PATCH(req: NextRequest) {
 
     // ตรวจสอบว่าโรงเรียนมีอยู่จริง
     const [existingSchool]: any = await pool.query(
-      'SELECT Sc_name, is_approved FROM School_Table WHERE Sc_id = ?',
+      'SELECT Sc_name, is_approved FROM school_table WHERE Sc_id = ?',
       [Sc_id]
     );
 
@@ -186,7 +186,7 @@ export async function PATCH(req: NextRequest) {
 
     const [result] = await pool.query<ResultSetHeader>(
       `
-      UPDATE School_Table SET 
+      UPDATE school_table SET 
         is_approved = ?,
         admin_note = ?,
         approved_at = CASE WHEN ? = 1 THEN NOW() ELSE NULL END
@@ -228,7 +228,7 @@ export async function DELETE(req: NextRequest) {
   try {
     // ตรวจสอบว่าโรงเรียนมีอยู่จริงและดึงชื่อมาแสดง
     const [existingSchool]: any = await pool.query(
-      'SELECT Sc_name, proposed_by FROM School_Table WHERE Sc_id = ?',
+      'SELECT Sc_name, proposed_by FROM school_table WHERE Sc_id = ?',
       [Sc_id]
     );
 
@@ -240,7 +240,7 @@ export async function DELETE(req: NextRequest) {
     const proposedBy = existingSchool[0].proposed_by;
 
     const [result] = await pool.query<ResultSetHeader>(
-      'DELETE FROM School_Table WHERE Sc_id = ?',
+      'DELETE FROM school_table WHERE Sc_id = ?',
       [Sc_id]
     );
 

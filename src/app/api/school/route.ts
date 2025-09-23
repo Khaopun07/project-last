@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const proposedBy = url.searchParams.get('proposedBy');
     const isApprovedParam = url.searchParams.get('is_approved');
 
-    let sql = 'SELECT * FROM School_Table';
+    let sql = 'SELECT * FROM school_table';
     const conditions: string[] = [];
     const params: any[] = [];
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
 
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO School_Table 
+      `INSERT INTO school_table 
       (Sc_name, Sc_address, Sc_district, Sc_subdistrict, Sc_province, Sc_postal, Sc_phone, Sc_email, Sc_website, Contact_no, Contact_name, is_approved, proposed_by) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
