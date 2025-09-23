@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
+import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
 import { FiUser, FiLogOut, FiSettings, FiHome, FiActivity, FiShield } from 'react-icons/fi';
 
@@ -60,9 +61,30 @@ export default function HeaderOfficer({ onLogout }: HeaderOfficerProps) {
   }, []);
 
   const handleLogoutClick = () => {
-    onLogout(); // Use the function passed from the parent
     setMenuOpen(false);
-    router.push('/');
+    Swal.fire({
+      title: 'คุณต้องการออกจากระบบหรือไม่?',
+      text: "คุณจะต้องเข้าสู่ระบบอีกครั้งเพื่อใช้งาน",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onLogout();
+        Swal.fire({
+          title: 'ออกจากระบบสำเร็จ!',
+          text: 'คุณได้ออกจากระบบเรียบร้อยแล้ว',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        }).then(() => {
+          router.push('/');
+        });
+      }
+    });
   };
 
   const displayName =
