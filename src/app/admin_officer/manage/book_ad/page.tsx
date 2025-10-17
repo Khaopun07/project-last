@@ -262,7 +262,7 @@ export default function BookingPage() {
           <label class="text-orange-700 font-medium text-sm">จุดรับส่ง</label>
           <p class="text-orange-900">${booking.T_PickupPoint || '-'}</p>
         </div>
-        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">👥 ข้อมูลนักเรียน</h4>
+        <h4 class="text-lg font-semibold text-blue-800 pt-4 border-t mt-4">👥 ข้อมูลนิสิต</h4>
         <p><b>คนที่ 1:</b> ${booking.Std_name1 || '-'} (${booking.Std_ID1 || '-'})</p>
         <p><b>คนที่ 2:</b> ${booking.Std_name2 || '-'} (${booking.Std_ID2 || '-'})</p>
       </div>

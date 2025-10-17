@@ -30,6 +30,125 @@ const PDF_CONFIG = {
   }
 };
 
+class ReportPDFGenerator {
+  private doc: jsPDF;
+  private pageWidth: number;
+  private pageHeight: number;
+  private currentY: number;
+  private readonly margin = PDF_CONFIG.margins.left;
+
+  constructor(private title: string, private startDate: string, private endDate: string) {
+    this.doc = new jsPDF(PDF_CONFIG);
+    this.pageWidth = this.doc.internal.pageSize.getWidth();
+    this.pageHeight = this.doc.internal.pageSize.getHeight();
+    this.currentY = PDF_CONFIG.margins.top;
+    this.addHeader();
+  }
+
+  private setFont(size: number, style: 'normal' | 'bold' = 'normal'): void {
+    this.doc.setFont('THSarabunNew', style);
+    this.doc.setFontSize(size);
+  }
+
+  private checkPageBreak(requiredHeight: number = 20): void {
+    if (this.currentY + requiredHeight > this.pageHeight - PDF_CONFIG.margins.bottom) {
+      this.doc.addPage();
+      this.currentY = PDF_CONFIG.margins.top;
+      this.addHeader();
+    }
+  }
+
+  private addHeader(): void {
+    this.setFont(PDF_CONFIG.fonts.title, 'normal');
+    this.doc.setTextColor(...PDF_CONFIG.colors.primary);
+    this.doc.text(this.title, this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.currentY += 8;
+
+    this.setFont(PDF_CONFIG.fonts.body);
+    this.doc.setTextColor(...PDF_CONFIG.colors.text);
+    const formattedStartDate = new Date(this.startDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedEndDate = new Date(this.endDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    this.doc.text(`ช่วงวันที่: ${formattedStartDate} ถึง ${formattedEndDate}`, this.pageWidth / 2, this.currentY, { align: 'center' });
+    this.currentY += 15;
+  }
+
+  private drawTable(headers: string[], rows: (string | number)[][], columnWidths: number[]): void {
+    const tableWidth = this.pageWidth - (2 * this.margin);
+    let xPos = this.margin;
+    const rowHeight = 8;
+    const headerHeight = 9;
+
+    // Draw header
+    this.doc.setFillColor(240, 240, 240);
+    this.doc.rect(this.margin, this.currentY - 5, tableWidth, headerHeight, 'F');
+    this.setFont(PDF_CONFIG.fonts.body, 'normal');
+    this.doc.setTextColor(60, 60, 60);
+
+    headers.forEach((header, i) => {
+      this.doc.text(header, xPos + 2, this.currentY);
+      xPos += columnWidths[i];
+    });
+    this.currentY += headerHeight;
+
+    // Draw rows
+    this.setFont(PDF_CONFIG.fonts.body);
+    this.doc.setTextColor(80, 80, 80);
+
+    rows.forEach((row, rowIndex) => {
+      this.checkPageBreak(rowHeight + 5);
+      if (rowIndex % 2 === 1) {
+        this.doc.setFillColor(248, 248, 248);
+        this.doc.rect(this.margin, this.currentY - 4, tableWidth, rowHeight, 'F');
+      }
+      xPos = this.margin;
+      row.forEach((cell, cellIndex) => {
+        this.doc.text(String(cell || ''), xPos + 2, this.currentY);
+        xPos += columnWidths[cellIndex];
+      });
+      this.currentY += rowHeight;
+    });
+  }
+
+  public generate(headers: string[], data: any[], columnWidths: number[]): Buffer {
+    this.drawTable(headers, data, columnWidths);
+    const arrayBuffer = this.doc.output('arraybuffer');
+    return Buffer.from(arrayBuffer);
+  }
+}
+
+
+export async function generateActivityReportPDF(data: any[], startDate: string, endDate: string): Promise<Buffer> {
+  const generator = new ReportPDFGenerator('รายงานสรุปกิจกรรมแนะแนว', startDate, endDate);
+  const headers = ['วันที่', 'โรงเรียน', 'จำนวนนักเรียน'];
+  const rows = data.map(item => [
+    new Date(item.guidance_date).toLocaleDateString('th-TH'),
+    item.Sc_name,
+    item.student_count
+  ]);
+  const columnWidths = [40, 100, 30];
+  return generator.generate(headers, rows, columnWidths);
+}
+
+export async function generateTeacherReportPDF(data: any[], startDate: string, endDate: string): Promise<Buffer> {
+  const generator = new ReportPDFGenerator('รายงานสรุปอาจารย์ที่เข้าร่วม', startDate, endDate);
+  const headers = ['ชื่อ-นามสกุล', 'โรงเรียน'];
+  const rows = data.map(item => [`${item.F_name} ${item.L_name}`, item.Sc_name]);
+  const columnWidths = [85, 85];
+  return generator.generate(headers, rows, columnWidths);
+}
+
+export async function generateStudentReportPDF(data: any[], startDate: string, endDate: string): Promise<Buffer> {
+  const generator = new ReportPDFGenerator('รายงานสรุปนิสิตที่เข้าร่วม', startDate, endDate);
+  const headers = ['วันที่', 'ชื่อ-นามสกุล', 'โรงเรียน'];
+   const rows = data.map(item => [
+    new Date(item.guidance_date).toLocaleDateString('th-TH'),
+    `${item.name} ${item.lastname}`,
+    item.Sc_name
+  ]);
+  const columnWidths = [40, 80, 50];
+  return generator.generate(headers, rows, columnWidths);
+}
+
 export class SimplePDFGenerator {
   private doc: jsPDF;
   private pageWidth: number;

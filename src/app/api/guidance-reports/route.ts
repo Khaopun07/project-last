@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RowDataPacket } from 'mysql2';
 import pool from '@/src/app/db/mysql';
 import { Guidance, GuidanceSummary } from '@/src/types/guidance_1';
+import { generateActivityReportPDF, generateTeacherReportPDF, generateStudentReportPDF } from '@/src/lib/pdf-generator';
 
 // GET /api/guidance-reports
 export async function GET(request: NextRequest) {
@@ -9,6 +10,38 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const guidanceId = searchParams.get('id');
     const action = searchParams.get('action');
+    const reportType = searchParams.get('reportType');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    if (reportType && startDate && endDate) {
+      let data;
+      let pdfBuffer;
+
+      switch (reportType) {
+        case 'activity':
+          data = await getActivityReportData(startDate, endDate);
+          pdfBuffer = await generateActivityReportPDF(data, startDate, endDate);
+          break;
+        case 'teacher':
+          data = await getTeacherReportData(startDate, endDate);
+          pdfBuffer = await generateTeacherReportPDF(data, startDate, endDate);
+          break;
+        case 'student':
+          data = await getStudentReportData(startDate, endDate);
+          pdfBuffer = await generateStudentReportPDF(data, startDate, endDate);
+          break;
+        default:
+          return NextResponse.json({ error: 'Invalid report type', success: false }, { status: 400 });
+      }
+
+      return new Response(pdfBuffer as any, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="${reportType}_report_${startDate}_to_${endDate}.pdf"`,
+        },
+      });
+    }
 
     if (guidanceId) {
       const report = await getGuidanceReport(parseInt(guidanceId));
@@ -106,4 +139,60 @@ async function getGuidanceReport(guidanceId: number) {
   };
 
   return activity;
+}
+
+async function getActivityReportData(startDate: string, endDate: string): Promise<any[]> {
+  const [rows] = await pool.execute<RowDataPacket[]>(`
+    SELECT g.GuidanceID, g.guidance_date, s.Sc_name, g.student_count
+    FROM guidance_table g
+    JOIN school_table s ON g.school_id = s.Sc_id
+    WHERE g.guidance_date BETWEEN ? AND ?
+    ORDER BY g.guidance_date ASC
+  `, [startDate, endDate]);
+  return rows;
+}
+
+async function getTeacherReportData(startDate: string, endDate: string): Promise<any[]> {
+  const [rows] = await pool.execute<RowDataPacket[]>(`
+    SELECT DISTINCT t.Username, t.F_name, t.L_name, s.Sc_name
+    FROM teacher_table t
+    JOIN book_table b ON t.TeacherID = b.TeacherID
+    JOIN guidance_table g ON b.GuidanceID = g.GuidanceID
+    JOIN school_table s ON g.school_id = s.Sc_id
+    WHERE g.guidance_date BETWEEN ? AND ?
+    ORDER BY s.Sc_name, t.F_name
+  `, [startDate, endDate]);
+  return rows;
+}
+
+async function getStudentReportData(startDate: string, endDate: string): Promise<any[]> {
+  const [rows] = await pool.execute<RowDataPacket[]>(`
+    SELECT g.guidance_date, s.Sc_name, b.Std_ID1, b.Std_name1, b.Std_ID2, b.Std_name2
+    FROM book_table b
+    JOIN guidance_table g ON b.GuidanceID = g.GuidanceID
+    JOIN school_table s ON g.school_id = s.Sc_id
+    WHERE g.guidance_date BETWEEN ? AND ?
+  `, [startDate, endDate]);
+
+  const students: any[] = [];
+  rows.forEach(row => {
+    if (row.Std_ID1 && row.Std_name1) {
+      students.push({
+        guidance_date: row.guidance_date,
+        Sc_name: row.Sc_name,
+        name: row.Std_name1,
+        lastname: ''
+      });
+    }
+    if (row.Std_ID2 && row.Std_name2) {
+      students.push({
+        guidance_date: row.guidance_date,
+        Sc_name: row.Sc_name,
+        name: row.Std_name2,
+        lastname: ''
+      });
+    }
+  });
+
+  return students;
 }

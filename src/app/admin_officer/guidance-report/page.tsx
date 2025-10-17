@@ -117,6 +117,72 @@ const PdfActions: FC<{ guidanceId: string }> = ({ guidanceId }) => (
     </div>
 );
 
+const ReportGenerator: FC = () => {
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  const handleGenerateReport = (reportType: 'activity' | 'teacher' | 'student') => {
+    if (!startDate || !endDate) {
+      alert('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด');
+      return;
+    }
+    const url = `/api/guidance-reports?reportType=${reportType}&startDate=${startDate}&endDate=${endDate}`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">ออกรายงานสรุป</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 mb-1">
+            วันที่เริ่มต้น
+          </label>
+          <input
+            type="date"
+            id="start-date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 mb-1">
+            วันที่สิ้นสุด
+          </label>
+          <input
+            type="date"
+            id="end-date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-4">
+        <button
+          onClick={() => handleGenerateReport('activity')}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          รายงานกิจกรรม
+        </button>
+        <button
+          onClick={() => handleGenerateReport('teacher')}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          รายงานอาจารย์ที่เข้าร่วม
+        </button>
+        <button
+          onClick={() => handleGenerateReport('student')}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          รายงานนิสิตที่เข้าร่วม
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ActivitiesTable: FC<{ activities: Guidance[] }> = ({ activities }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -376,6 +442,8 @@ export default function GuidanceReportPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">รายงานกิจกรรมแนะแนวการศึกษา</h1>
           <p className="text-gray-600">ระบบออกเอกสาร PDF รายงานกิจกรรมและรายชื่อผู้เข้าร่วม</p>
         </div>
+
+        <ReportGenerator />
 
         {summary && <SummaryCards summary={summary} />}
         {summary && <StatusTags summary={summary} />}

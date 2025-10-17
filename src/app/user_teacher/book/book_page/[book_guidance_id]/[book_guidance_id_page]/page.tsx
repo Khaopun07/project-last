@@ -500,17 +500,17 @@ export default function BookingFormPage() {
 
               {/* Students Section */}
               <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-4">ข้อมูลนักเรียน (ไม่บังคับ)</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-4">ข้อมูลนิสิต (ไม่บังคับ)</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Student 1 Section */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-100">
                     <h4 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                      นักเรียนคนที่ 1
+                      นิสิตคนที่ 1
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนักเรียน</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนิสิต</label>
                         <input name="Std_ID1" placeholder="เช่น 640610001" value={form.Std_ID1} onChange={handleChange} className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300" />
                       </div>
                       <div>
@@ -524,11 +524,11 @@ export default function BookingFormPage() {
                   <div className="bg-gradient-to-r from-green-50 to-teal-50 p-6 rounded-xl border-2 border-green-100">
                     <h4 className="text-lg font-bold text-green-800 mb-4 flex items-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                      นักเรียนคนที่ 2
+                      นิสิตคนที่ 2
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนักเรียน</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสนิสิต</label>
                         <input name="Std_ID2" placeholder="เช่น 640610002" value={form.Std_ID2} onChange={handleChange} className="w-full px-4 py-3 border-2 border-green-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-300" />
                       </div>
                       <div>
